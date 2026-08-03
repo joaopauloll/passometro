@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Paciente {
+  id                 String   @id @default(cuid())
+  nome               String
+  leito              String
+  registroHospitalar String
+  dataInternacao     DateTime
+  diagnostico        String
+  cid                String?
+  subespecialidade   String?
+  cirurgioes         String   @default("[]") // JSON array de strings
+  status             String   @default("INTERNADO") // INTERNADO | ALTA_ORTOPEDIA | ALTA_HOSPITALAR
+  tipoStatus         String   @default("PRE_OPERATORIO") // PRE_OPERATORIO | POS_OPERATORIO
+  comorbidades       String?
+  medicacoes         String?
+  alergias           String?
+  dataNascimento     DateTime?
+  temInfeccao        Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  cirurgias  Cirurgia[]
+  evolucoes  Evolucao[]
+  pendencias Pendencia[]
+}
+
+model Cirurgia {
+  id              String   @id @default(cuid())
+  pacienteId      String
+  nomeCirurgia    String
+  cirurgiao       String
+  dataCirurgia    DateTime
+  hospitalExterno String?
+  createdAt       DateTime @default(now())
+
+  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+}
+
+model Evolucao {
+  id         String   @id @default(cuid())
+  pacienteId String
+  data       DateTime @default(now())
+
+  // Estado geral
+  estavel  Boolean?
+  febre    Boolean?
+  semDor   Boolean?
+  dorControlada Boolean?
+
+  // Eliminações
+  diurese         String? // espontanea | svd | anurico
+  ultimaEvacuacao String?
+
+  // Exame físico
+  perfusaoPreservada      Boolean?
+  sensibilidadePreservada Boolean?
+  movimentoPreservado     Boolean?
+
+  // Imobilização
+  usaGesso  Boolean?
+  qualGesso String?
+
+  // Curativo
+  possuiCurativo        Boolean?
+  curativoLimpo         Boolean?
+  secrecaoInfecciosa    Boolean?
+  secrecaoSanguinolenta Boolean?
+
+  // Pós-operatório
+  rxPosOpRealizado     Boolean?
+  rxSatisfatorio       Boolean?
+  rxEnviadoCirurgiao   Boolean?
+
+  // Avaliação neurológica pós-op
+  movPosOp    Boolean?
+  sensPosOp   Boolean?
+  deficitNeurol String? // melhorou | igual | piorou
+
+  // Cardiovascular (≥55 anos)
+  cardioPendente     Boolean?
+  cardiologistaLiberou Boolean?
+  solicitouEco       Boolean?
+  ecoReady           Boolean?
+  riscoConcluido     Boolean?
+  necessitaUTI       Boolean?
+
+  // Laboratórios
+  hemoglobina Float?
+  plaquetas   Float?
+  inr         Float?
+
+  // Clínica médica
+  acompClinico Boolean?
+  nomeClinico  String?
+
+  // Alta
+  altaPrevista Boolean?
+  altaHoje     Boolean?
+  chkReceita   Boolean @default(false)
+  chkRelatorio Boolean @default(false)
+  chkOrientacoes Boolean @default(false)
+  chkAtestado  Boolean @default(false)
+  chkRetorno   Boolean @default(false)
+  chkRX        Boolean @default(false)
+
+  // Texto e observações
+  textoGerado String?
+  observacoes String?
+
+  createdAt DateTime @default(now())
+
+  paciente   Paciente    @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  pendencias Pendencia[]
+}
+
+model Pendencia {
+  id         String   @id @default(cuid())
+  pacienteId String
+  evolucaoId String?
+  descricao  String
+  tipo       String // RX | RISCO_CIRURGICO | INFECTOLOGIA | ALTA | EXAME | CLINICA | OUTRO
+  concluida  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  paciente Paciente  @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  evolucao Evolucao? @relation(fields: [evolucaoId], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  acao      String
+  detalhes  String?
+  ip        String?
+  createdAt DateTime @default(now())
+}
