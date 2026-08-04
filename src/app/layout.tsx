@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body className={`${geistSans.variable} font-sans bg-gray-50 min-h-screen antialiased`}>
+      <body className={`${geistSans.variable} font-sans bg-slate-50 min-h-screen antialiased`}>
         {children}
         <Toaster richColors position="top-right" />
       </body>

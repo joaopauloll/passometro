@@ -36,7 +36,7 @@ export function gerarTextoEvolucao(
     else if (dados.diurese === 'svd') elim.push('diurese por SVD')
     else if (dados.diurese === 'anurico') elim.push('anúrico')
 
-    if (dados.ultimaEvacuacao) elim.push(`última evacuação há ${dados.ultimaEvacuacao}`)
+    if (dados.ultimaEvacuacao) elim.push(`última evacuação ${dados.ultimaEvacuacao}`)
 
     if (elim.length > 0) partes.push(capitalize(elim.join(', ')) + '.')
 
@@ -97,6 +97,32 @@ export function gerarTextoEvolucao(
         } else if (dados.rxPosOpRealizado === false) {
             partes.push('RX pós-operatório pendente.')
         }
+
+        // Neurológico pós-op
+        if (dados.deficitPrevio === true && dados.deficitNeurol) {
+            const mapDeficit: Record<string, string> = {
+                melhorou: 'Déficit neurológico pré-operatório com melhora no pós-operatório.',
+                igual: 'Déficit neurológico pré-operatório sem alteração.',
+                piorou: 'Piora do déficit neurológico em relação ao pré-operatório — necessita avaliação.',
+            }
+            partes.push(mapDeficit[dados.deficitNeurol] || '')
+        } else if (dados.deficitPrevio === false) {
+            const neurol: string[] = []
+            if (dados.movPosOp === true) neurol.push('movimento')
+            if (dados.sensPosOp === true) neurol.push('sensibilidade')
+            if (neurol.length > 0) {
+                partes.push(`${capitalize(neurol.join(' e '))} preservado(s) no pós-operatório.`)
+            }
+        }
+    }
+
+    // ── Outras lesões ────────────────────────────────────────
+    if (dados.outrasLesoes && dados.outrasLesoes.length > 0) {
+        const lesoes = dados.outrasLesoes.filter(l => l.osso)
+        if (lesoes.length > 0) {
+            const desc = lesoes.map(l => `${l.osso}${l.lado ? ` (${l.lado})` : ''}`).join(', ')
+            partes.push(`Dor em ${desc} sem radiografia prévia — solicitadas incidências para avaliação.`)
+        }
     }
 
     // ── Laboratórios ─────────────────────────────────────────
@@ -112,6 +138,30 @@ export function gerarTextoEvolucao(
     }
     if (labAlterados.length > 0) {
         partes.push(`Laboratório com alterações: ${labAlterados.join(', ')}.`)
+    }
+
+    // ── Infecção ortopédica ──────────────────────────────────
+    const infecAlterados: string[] = []
+    if (dados.leucocitos != null && dados.leucocitos > 11) {
+        infecAlterados.push(`leucócitos ${dados.leucocitos} mil/µL`)
+    }
+    if (dados.pcr != null && dados.pcr > 10) {
+        infecAlterados.push(`PCR ${dados.pcr} mg/L`)
+    }
+    if (dados.vhs != null && dados.vhs > 20) {
+        infecAlterados.push(`VHS ${dados.vhs} mm/h`)
+    }
+    if (infecAlterados.length > 0) {
+        partes.push(`Marcadores infecciosos elevados: ${infecAlterados.join(', ')}.`)
+    }
+    if (dados.antibioticoAtual) {
+        const dia = dados.diaTratamento ? ` (${dados.diaTratamento}º dia)` : ''
+        partes.push(`Em uso de ${dados.antibioticoAtual}${dia}.`)
+    }
+    if (dados.infectAvaliado === true && dados.nomeInfectologista) {
+        partes.push(`Avaliado pela infectologia — Dr(a). ${dados.nomeInfectologista}.`)
+    } else if (dados.infectAvaliado === false) {
+        partes.push('Aguardando avaliação da infectologia.')
     }
 
     // ── Cardiovascular ───────────────────────────────────────
@@ -146,13 +196,15 @@ export function gerarTextoEvolucao(
         dados.dorControlada === false ||
         alterados.length > 0 ||
         dados.secrecaoInfecciosa === true ||
-        labAlterados.length > 0
+        labAlterados.length > 0 ||
+        infecAlterados.length > 0 ||
+        (dados.outrasLesoes && dados.outrasLesoes.filter(l => l.osso).length > 0)
 
     if (!temAlteracao) {
         partes.push('Sem novas intercorrências.')
     }
 
-    return partes.join(' ')
+    return partes.filter(Boolean).join(' ')
 }
 
 /**
@@ -176,6 +228,18 @@ export function gerarPendencias(
         pendencias.push({ descricao: 'Enviar RX pós-operatório ao cirurgião', tipo: 'RX' as TipoPendencia })
     }
 
+    // Outras lesões → RX pendente
+    if (dados.outrasLesoes) {
+        for (const lesao of dados.outrasLesoes.filter(l => l.osso)) {
+            const lado = lesao.lado ? ` ${lesao.lado}` : ''
+            const inc = lesao.incidencias ? ` (${lesao.incidencias})` : ''
+            pendencias.push({
+                descricao: `Solicitar RX — ${lesao.osso}${lado}${inc}`,
+                tipo: 'OUTRA_LESAO' as TipoPendencia,
+            })
+        }
+    }
+
     // Risco cardiovascular
     if (idadePaciente && idadePaciente >= 55) {
         if (!dados.cardiologistaLiberou && dados.cardioPendente !== false) {
@@ -186,12 +250,20 @@ export function gerarPendencias(
         }
     }
 
+    // Infectologia
+    if (dados.infectAvaliado === false) {
+        pendencias.push({ descricao: 'Solicitar avaliação da infectologia', tipo: 'INFECTOLOGIA' as TipoPendencia })
+    }
+    if (dados.culturasSolicitadas === true && dados.culturasResultado === false) {
+        pendencias.push({ descricao: 'Aguardando resultado das culturas', tipo: 'INFECTOLOGIA' as TipoPendencia })
+    }
+
     // Clínica médica
     if (dados.acompClinico === false) {
         pendencias.push({ descricao: 'Realizar prescrição clínica', tipo: 'CLINICA' as TipoPendencia })
     }
 
-    // Infecção
+    // Infecção no curativo
     if (dados.secrecaoInfecciosa === true) {
         pendencias.push({ descricao: 'Avaliar infecção — curativo com secreção infecciosa', tipo: 'INFECTOLOGIA' as TipoPendencia })
     }
@@ -215,7 +287,8 @@ export function gerarPendencias(
 export function corPendencia(tipo: string): string {
     switch (tipo) {
         case 'ALTA': return 'bg-green-100 text-green-800 border-green-200'
-        case 'RX': return 'bg-blue-100 text-blue-800 border-blue-200'
+        case 'RX':
+        case 'OUTRA_LESAO': return 'bg-blue-100 text-blue-800 border-blue-200'
         case 'RISCO_CIRURGICO': return 'bg-orange-100 text-orange-800 border-orange-200'
         case 'INFECTOLOGIA': return 'bg-red-100 text-red-800 border-red-200'
         case 'EXAME': return 'bg-purple-100 text-purple-800 border-purple-200'
@@ -223,3 +296,5 @@ export function corPendencia(tipo: string): string {
         default: return 'bg-gray-100 text-gray-800 border-gray-200'
     }
 }
+
+

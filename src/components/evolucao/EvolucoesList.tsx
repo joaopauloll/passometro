@@ -33,7 +33,7 @@ export default function EvolucoesList({ evolucoes, pacienteId }: Props) {
           </CardTitle>
           <Link
             href={`/pacientes/${pacienteId}/evolucao/nova`}
-            className="text-xs text-blue-600 hover:underline"
+            className="inline-flex items-center gap-1 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-md transition-colors"
           >
             + Nova evolução
           </Link>
@@ -63,14 +63,20 @@ export default function EvolucoesList({ evolucoes, pacienteId }: Props) {
             {expandido === ev.id && ev.textoGerado && (
               <div className="px-3 pb-3 border-t border-gray-100">
                 <p className="text-sm text-gray-700 leading-relaxed mt-2">{ev.textoGerado}</p>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(ev.textoGerado!)
-                  }}
-                  className="mt-2 text-xs text-blue-600 hover:underline"
-                >
-                  📋 Copiar texto
-                </button>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(ev.textoGerado!) }}
+                    className="inline-flex items-center gap-1 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded-md transition-colors"
+                  >
+                    📋 Copiar texto
+                  </button>
+                  <Link
+                    href={`/pacientes/${pacienteId}/evolucao/${ev.id}/editar`}
+                    className="inline-flex items-center gap-1 text-xs font-medium bg-amber-100 hover:bg-amber-200 text-amber-700 px-2.5 py-1 rounded-md transition-colors"
+                  >
+                    ✏️ Editar
+                  </Link>
+                </div>
               </div>
             )}
           </div>

@@ -10,7 +10,14 @@ export type TipoPendencia =
     | 'ALTA'
     | 'EXAME'
     | 'CLINICA'
+    | 'OUTRA_LESAO'
     | 'OUTRO'
+
+export interface OutraLesao {
+    osso: string
+    lado: string
+    incidencias: string
+}
 
 // Dados do formulário de evolução
 export interface EvolucaoFormData {
@@ -45,6 +52,7 @@ export interface EvolucaoFormData {
     rxEnviadoCirurgiao?: boolean
 
     // Neurológico pós-op
+    deficitPrevio?: boolean
     movPosOp?: boolean
     sensPosOp?: boolean
     deficitNeurol?: 'melhorou' | 'igual' | 'piorou'
@@ -57,10 +65,30 @@ export interface EvolucaoFormData {
     riscoConcluido?: boolean
     necessitaUTI?: boolean
 
-    // Laboratórios
+    // Laboratórios básicos
     hemoglobina?: number | null
     plaquetas?: number | null
     inr?: number | null
+
+    // Infecção ortopédica
+    leucocitos?: number | null
+    pcr?: number | null
+    vhs?: number | null
+    creatinina?: number | null
+    ureia?: number | null
+    culturasSolicitadas?: boolean
+    culturasResultado?: boolean
+    infectAvaliado?: boolean
+    nomeInfectologista?: string
+    antibioticoAtual?: string
+    diaTratamento?: number | null
+    antibioticosPrevios?: string
+    lavCirurgicaRealizada?: boolean
+    qtdLavagens?: number | null
+    retirouImplante?: boolean
+
+    // Outras lesões
+    outrasLesoes?: OutraLesao[]
 
     // Clínica médica
     acompClinico?: boolean
@@ -75,6 +103,13 @@ export interface EvolucaoFormData {
     chkAtestado?: boolean
     chkRetorno?: boolean
     chkRX?: boolean
+
+    // Reabilitação pós-op
+    sentou?: boolean
+    iniciouFisioterapia?: boolean
+    dreno?: boolean
+    drenoCm3?: number | null
+    drenoAspecto?: string
 
     // Observações
     observacoes?: string

@@ -15,7 +15,7 @@ export default function LogoutButton() {
   }
 
   return (
-    <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-500 hover:text-gray-700">
+    <Button variant="ghost" size="sm" onClick={handleLogout} className="text-slate-500 hover:text-slate-700 hover:bg-slate-100 text-sm font-medium">
       Sair
     </Button>
   )

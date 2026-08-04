@@ -64,12 +64,13 @@ function TriSwitch({
 
 type Props = {
   pacienteId: string
+  evolucaoId?: string  // when set, enables edit mode (PUT instead of POST)
   isPosOperatorio: boolean
   idadePaciente?: number | null
   nomePaciente: string
 }
 
-export default function EvolucaoForm({ pacienteId, isPosOperatorio, idadePaciente, nomePaciente }: Props) {
+export default function EvolucaoForm({ pacienteId, evolucaoId, isPosOperatorio, idadePaciente, nomePaciente }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [textoPreview, setTextoPreview] = useState('')
@@ -98,11 +99,36 @@ export default function EvolucaoForm({ pacienteId, isPosOperatorio, idadePacient
   const [curativoLimpo, setCurativoLimpo] = useState<TriOption>(null)
   const [secInfecciosa, setSecInfecciosa] = useState<TriOption>(null)
   const [secSanguinolenta, setSecSanguinolenta] = useState<TriOption>(null)
+  const [curativoLocal, setCurativoLocal] = useState('')
+  const [curativoLateralidade, setCurativoLateralidade] = useState<'direita' | 'esquerda' | 'bilateral' | ''>('')
 
   // Pós-op
   const [rxRealizado, setRxRealizado] = useState<TriOption>(null)
   const [rxSatisfatorio, setRxSatisfatorio] = useState<TriOption>(null)
   const [rxEnviado, setRxEnviado] = useState<TriOption>(null)
+
+  // Reabilitação pós-op
+  const [sentou, setSentou] = useState<TriOption>(null)
+  const [iniciouFisioterapia, setIniciouFisioterapia] = useState<TriOption>(null)
+  const [dreno, setDreno] = useState<TriOption>(null)
+  const [drenoCm3, setDrenoCm3] = useState('')
+  const [drenoAspecto, setDrenoAspecto] = useState('')
+
+  // Imobilização (checkboxes)
+  const IMOB_TIPOS = ['gesso', 'tala', 'tipoia', 'tração transesquelética', 'robofoot', 'brace', 'outros'] as const
+  const [imobTipos, setImobTipos] = useState<string[]>([])
+  const [imobLateralidade, setImobLateralidade] = useState<'direita' | 'esquerda' | 'bilateral' | ''>('')
+  const [imobOutros, setImobOutros] = useState('')
+
+  function toggleImob(tipo: string) {
+    setImobTipos(prev => prev.includes(tipo) ? prev.filter(t => t !== tipo) : [...prev, tipo])
+  }
+
+  // Neurológico pós-op (item 4)
+  const [deficitPrevio, setDeficitPrevio] = useState<TriOption>(null)
+  const [movPosOp, setMovPosOp] = useState<TriOption>(null)
+  const [sensPosOp, setSensPosOp] = useState<TriOption>(null)
+  const [deficitNeurol, setDeficitNeurol] = useState<'melhorou' | 'igual' | 'piorou' | ''>('')
 
   // Cardio (≥55 anos)
   const [cardioPendente, setCardioPendente] = useState<TriOption>(null)
@@ -115,6 +141,39 @@ export default function EvolucaoForm({ pacienteId, isPosOperatorio, idadePacient
   const [hemoglobina, setHemoglobina] = useState('')
   const [plaquetas, setPlaquetas] = useState('')
   const [inr, setInr] = useState('')
+
+  // Infecção ortopédica (item 6)
+  const [leucocitos, setLeucocitos] = useState('')
+  const [pcr, setPcr] = useState('')
+  const [vhs, setVhs] = useState('')
+  const [creatinina, setCreatinina] = useState('')
+  const [ureia, setUreia] = useState('')
+  const [culturasSolicitadas, setCulturasSolicitadas] = useState<TriOption>(null)
+  const [culturasResultado, setCulturasResultado] = useState<TriOption>(null)
+  const [infectAvaliado, setInfectAvaliado] = useState<TriOption>(null)
+  const [nomeInfectologista, setNomeInfectologista] = useState('')
+  const [antibioticoAtual, setAntibioticoAtual] = useState('')
+  const [diaTratamento, setDiaTratamento] = useState('')
+  const [antibioticosPrevios, setAntibioticosPrevios] = useState('')
+  const [lavCirurgicaRealizada, setLavCirurgicaRealizada] = useState<TriOption>(null)
+  const [qtdLavagens, setQtdLavagens] = useState('')
+  const [retirouImplante, setRetirouImplante] = useState<TriOption>(null)
+
+  // Outras lesões (item 5)
+  type OutraLesaoLocal = { osso: string; lado: string; incidencias: string }
+  const [temOutrasLesoes, setTemOutrasLesoes] = useState<TriOption>(null)
+  const [outrasLesoes, setOutrasLesoes] = useState<OutraLesaoLocal[]>([{ osso: '', lado: '', incidencias: '' }])
+
+  function adicionarLesao() {
+    setOutrasLesoes([...outrasLesoes, { osso: '', lado: '', incidencias: '' }])
+  }
+  function atualizarLesao(idx: number, campo: keyof OutraLesaoLocal, valor: string) {
+    const novas = outrasLesoes.map((l, i) => i === idx ? { ...l, [campo]: valor } : l)
+    setOutrasLesoes(novas)
+  }
+  function removerLesao(idx: number) {
+    setOutrasLesoes(outrasLesoes.filter((_, i) => i !== idx))
+  }
 
   // Clínica médica
   const [acompClinico, setAcompClinico] = useState<TriOption>(null)
@@ -152,6 +211,10 @@ export default function EvolucaoForm({ pacienteId, isPosOperatorio, idadePacient
     rxPosOpRealizado: tri(rxRealizado),
     rxSatisfatorio: tri(rxSatisfatorio),
     rxEnviadoCirurgiao: tri(rxEnviado),
+    deficitPrevio: tri(deficitPrevio),
+    movPosOp: tri(movPosOp),
+    sensPosOp: tri(sensPosOp),
+    deficitNeurol: deficitNeurol || undefined,
     cardioPendente: tri(cardioPendente),
     cardiologistaLiberou: tri(cardiologistaLiberou),
     solicitouEco: tri(solicitouEco),
@@ -160,6 +223,22 @@ export default function EvolucaoForm({ pacienteId, isPosOperatorio, idadePacient
     hemoglobina: hemoglobina ? parseFloat(hemoglobina) : null,
     plaquetas: plaquetas ? parseFloat(plaquetas) : null,
     inr: inr ? parseFloat(inr) : null,
+    leucocitos: leucocitos ? parseFloat(leucocitos) : null,
+    pcr: pcr ? parseFloat(pcr) : null,
+    vhs: vhs ? parseFloat(vhs) : null,
+    creatinina: creatinina ? parseFloat(creatinina) : null,
+    ureia: ureia ? parseFloat(ureia) : null,
+    culturasSolicitadas: tri(culturasSolicitadas),
+    culturasResultado: tri(culturasResultado),
+    infectAvaliado: tri(infectAvaliado),
+    nomeInfectologista: nomeInfectologista || undefined,
+    antibioticoAtual: antibioticoAtual || undefined,
+    diaTratamento: diaTratamento ? parseInt(diaTratamento) : null,
+    antibioticosPrevios: antibioticosPrevios || undefined,
+    lavCirurgicaRealizada: tri(lavCirurgicaRealizada),
+    qtdLavagens: qtdLavagens ? parseInt(qtdLavagens) : null,
+    retirouImplante: tri(retirouImplante),
+    outrasLesoes: temOutrasLesoes === 'sim' ? outrasLesoes.filter(l => l.osso) : [],
     acompClinico: tri(acompClinico),
     nomeClinico: nomeClinico || undefined,
     altaPrevista: tri(altaPrevista),
@@ -170,15 +249,27 @@ export default function EvolucaoForm({ pacienteId, isPosOperatorio, idadePacient
     chkAtestado,
     chkRetorno,
     chkRX,
+    sentou: tri(sentou),
+    iniciouFisioterapia: tri(iniciouFisioterapia),
+    dreno: tri(dreno),
+    drenoCm3: drenoCm3 ? parseFloat(drenoCm3) : null,
+    drenoAspecto: drenoAspecto || undefined,
     observacoes: observacoes || undefined,
   }), [
     estavel, febre, semDor, dorControlada, diurese, ultimaEvacuacao,
     perfusao, sensibilidade, movimento, usaGesso, qualGesso,
     possuiCurativo, curativoLimpo, secInfecciosa, secSanguinolenta,
-    rxRealizado, rxSatisfatorio, rxEnviado, cardioPendente, cardiologistaLiberou,
-    solicitouEco, ecoReady, necessitaUTI, hemoglobina, plaquetas, inr,
+    rxRealizado, rxSatisfatorio, rxEnviado, deficitPrevio, movPosOp, sensPosOp, deficitNeurol,
+    cardioPendente, cardiologistaLiberou, solicitouEco, ecoReady, necessitaUTI,
+    hemoglobina, plaquetas, inr,
+    leucocitos, pcr, vhs, creatinina, ureia,
+    culturasSolicitadas, culturasResultado, infectAvaliado, nomeInfectologista,
+    antibioticoAtual, diaTratamento, antibioticosPrevios,
+    lavCirurgicaRealizada, qtdLavagens, retirouImplante,
+    temOutrasLesoes, outrasLesoes,
     acompClinico, nomeClinico, altaPrevista, altaHoje,
-    chkReceita, chkRelatorio, chkOrientacoes, chkAtestado, chkRetorno, chkRX, observacoes
+    chkReceita, chkRelatorio, chkOrientacoes, chkAtestado, chkRetorno, chkRX,
+    sentou, iniciouFisioterapia, dreno, drenoCm3, drenoAspecto, observacoes
   ])
 
   // Atualiza preview automaticamente
@@ -198,15 +289,19 @@ export default function EvolucaoForm({ pacienteId, isPosOperatorio, idadePacient
 
     try {
       const dados = getDados()
-      const res = await fetch(`/api/pacientes/${pacienteId}/evolucoes`, {
-        method: 'POST',
+      const url = evolucaoId
+        ? `/api/pacientes/${pacienteId}/evolucoes/${evolucaoId}`
+        : `/api/pacientes/${pacienteId}/evolucoes`
+      const method = evolucaoId ? 'PUT' : 'POST'
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dados),
       })
 
       if (!res.ok) throw new Error('Erro ao salvar evolução')
 
-      toast.success('Evolução registrada!')
+      toast.success(evolucaoId ? 'Evolução atualizada!' : 'Evolução registrada!')
       router.push(`/pacientes/${pacienteId}`)
       router.refresh()
     } catch {
@@ -219,7 +314,7 @@ export default function EvolucaoForm({ pacienteId, isPosOperatorio, idadePacient
   const mostraCardio = idadePaciente != null && idadePaciente >= 55
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 max-w-2xl">
+    <form onSubmit={handleSubmit} className="space-y-5 max-w-2xl mx-auto">
 
       {/* Estado geral */}
       <Card>
@@ -296,15 +391,41 @@ export default function EvolucaoForm({ pacienteId, isPosOperatorio, idadePacient
           <CardTitle className="text-sm text-gray-500 font-medium uppercase tracking-wide">Imobilização</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <TriSwitch label="Usa gesso?" value={usaGesso} onChange={setUsaGesso} />
-          {usaGesso === 'sim' && (
+          <div>
+            <p className="text-sm text-gray-700 mb-2">Tipo(s) de imobilização:</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {(['gesso', 'tala', 'tipoia', 'tração transesquelética', 'robofoot', 'brace', 'outros'] as const).map(tipo => (
+                <label key={tipo} className="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" checked={imobTipos.includes(tipo)} onChange={() => toggleImob(tipo)} className="accent-blue-600 h-4 w-4" />
+                  <span className="text-sm capitalize">{tipo}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          {imobTipos.includes('gesso') && (
             <div className="space-y-1.5">
               <Label className="text-sm">Qual gesso?</Label>
-              <Input
-                value={qualGesso}
-                onChange={(e) => setQualGesso(e.target.value)}
-                placeholder="Ex: Gessado coxopodálico, tipoia…"
-              />
+              <Input value={qualGesso} onChange={e => setQualGesso(e.target.value)} placeholder="Ex: Gessado coxopodálico…" />
+            </div>
+          )}
+          {imobTipos.includes('outros') && (
+            <div className="space-y-1.5">
+              <Label className="text-sm">Descrever outro tipo</Label>
+              <Input value={imobOutros} onChange={e => setImobOutros(e.target.value)} placeholder="Descrever…" />
+            </div>
+          )}
+          {imobTipos.length > 0 && (
+            <div className="space-y-1.5">
+              <Label className="text-sm">Lateralidade</Label>
+              <div className="flex gap-3">
+                {(['direita', 'esquerda', 'bilateral'] as const).map(lat => (
+                  <label key={lat} className="flex items-center gap-1.5 cursor-pointer text-sm">
+                    <input type="radio" name="imobLat" value={lat} checked={imobLateralidade === lat}
+                      onChange={() => setImobLateralidade(lat)} className="accent-blue-600" />
+                    {lat.charAt(0).toUpperCase() + lat.slice(1)}
+                  </label>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
@@ -322,6 +443,24 @@ export default function EvolucaoForm({ pacienteId, isPosOperatorio, idadePacient
               <TriSwitch label="Curativo limpo?" value={curativoLimpo} onChange={setCurativoLimpo} />
               <TriSwitch label="Secreção infecciosa?" value={secInfecciosa} onChange={setSecInfecciosa} />
               <TriSwitch label="Secreção sanguinolenta?" value={secSanguinolenta} onChange={setSecSanguinolenta} />
+              <div className="grid sm:grid-cols-2 gap-3 mt-2">
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Local do curativo</Label>
+                  <Input value={curativoLocal} onChange={e => setCurativoLocal(e.target.value)} placeholder="Ex: Ferida cirúrgica do quadril…" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Lateralidade</Label>
+                  <div className="flex gap-3 mt-1">
+                    {(['direita', 'esquerda', 'bilateral'] as const).map(lat => (
+                      <label key={lat} className="flex items-center gap-1.5 cursor-pointer text-sm">
+                        <input type="radio" name="curLat" value={lat} checked={curativoLateralidade === lat}
+                          onChange={() => setCurativoLateralidade(lat)} className="accent-blue-600" />
+                        {lat.charAt(0).toUpperCase() + lat.slice(1)}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </>
           )}
         </CardContent>
@@ -341,9 +480,102 @@ export default function EvolucaoForm({ pacienteId, isPosOperatorio, idadePacient
                 <TriSwitch label="Enviado ao cirurgião?" value={rxEnviado} onChange={setRxEnviado} />
               </>
             )}
+            <Separator className="my-1" />
+            {/* Reabilitação pós-op */}
+            <TriSwitch label="Já sentou?" value={sentou} onChange={setSentou} />
+            <TriSwitch label="Já iniciou fisioterapia?" value={iniciouFisioterapia} onChange={setIniciouFisioterapia} />
+            <TriSwitch label="Tem dreno?" value={dreno} onChange={setDreno} />
+            {dreno === 'sim' && (
+              <div className="grid grid-cols-2 gap-3 mt-2">
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Volume dreno (mL)</Label>
+                  <Input type="number" min="0" value={drenoCm3} onChange={e => setDrenoCm3(e.target.value)} placeholder="Ex: 50" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Aspecto do dreno</Label>
+                  <Input value={drenoAspecto} onChange={e => setDrenoAspecto(e.target.value)} placeholder="Seroso, hemático…" />
+                </div>
+              </div>
+            )}
+            <Separator className="my-1" />
+            {/* Avaliação neurológica pós-op (item 4) */}
+            <TriSwitch label="Havia déficit neurológico pré-operatório?" value={deficitPrevio} onChange={setDeficitPrevio} />
+            {deficitPrevio === 'nao' && (
+              <>
+                <TriSwitch label="Movimento preservado no pós-op?" value={movPosOp} onChange={setMovPosOp} />
+                <TriSwitch label="Sensibilidade preservada no pós-op?" value={sensPosOp} onChange={setSensPosOp} />
+              </>
+            )}
+            {deficitPrevio === 'sim' && (
+              <div className="space-y-1.5">
+                <Label className="text-sm">Comparado ao pré-operatório, o déficit:</Label>
+                <div className="flex gap-2">
+                  {[
+                    { value: 'melhorou', label: '↑ Melhorou', cls: 'bg-green-50 border-green-300 text-green-700' },
+                    { value: 'igual', label: '= Igual', cls: 'bg-yellow-50 border-yellow-300 text-yellow-700' },
+                    { value: 'piorou', label: '↓ Piorou', cls: 'bg-red-50 border-red-300 text-red-700' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setDeficitNeurol(deficitNeurol === opt.value ? '' : opt.value as typeof deficitNeurol)}
+                      className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-colors ${deficitNeurol === opt.value ? opt.cls : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
+
+      {/* Avaliação de outras lesões (item 5) */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm text-gray-500 font-medium uppercase tracking-wide">Avaliação de Outras Lesões</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <TriSwitch label="Paciente com dor em local sem radiografia?" value={temOutrasLesoes} onChange={setTemOutrasLesoes} />
+          {temOutrasLesoes === 'sim' && (
+            <div className="space-y-3">
+              {outrasLesoes.map((lesao, idx) => (
+                <div key={idx} className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-blue-700">Lesão {idx + 1}</span>
+                    {outrasLesoes.length > 1 && (
+                      <button type="button" onClick={() => removerLesao(idx)} className="text-xs text-gray-400 hover:text-red-500">✕</button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Osso</Label>
+                      <Input value={lesao.osso} onChange={(e) => atualizarLesao(idx, 'osso', e.target.value)} placeholder="Ex: Fêmur, Tíbia…" className="text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Lado</Label>
+                      <select value={lesao.lado} onChange={e => atualizarLesao(idx, 'lado', e.target.value)}
+                        className="w-full text-sm border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Selecionar…</option>
+                        <option value="Direito">Direito</option>
+                        <option value="Esquerdo">Esquerdo</option>
+                        <option value="Bilateral">Bilateral</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2 space-y-1">
+                      <Label className="text-xs">Incidências necessárias</Label>
+                      <Input value={lesao.incidencias} onChange={(e) => atualizarLesao(idx, 'incidencias', e.target.value)} placeholder="AP, Perfil, Axial…" className="text-sm" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <button type="button" onClick={adicionarLesao} className="text-xs text-blue-600 hover:underline">+ Adicionar lesão</button>
+              <p className="text-xs text-amber-600">⚠ Pendência de RX será criada automaticamente para cada lesão.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Cardiovascular (≥55 anos) */}
       {mostraCardio && (
@@ -403,6 +635,71 @@ export default function EvolucaoForm({ pacienteId, isPosOperatorio, idadePacient
               />
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Infecção ortopédica (item 6) — aparece quando paciente tem infecção */}
+      <Card className="border-red-200">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm text-red-600 font-medium uppercase tracking-wide">🦠 Infecção Ortopédica</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Laboratórios de infecção */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {[
+              { id: 'leucocitos', label: 'Leucócitos (mil/µL)', val: leucocitos, set: setLeucocitos, alerta: (v: string) => parseFloat(v) > 11 },
+              { id: 'pcr', label: 'PCR (mg/L)', val: pcr, set: setPcr, alerta: (v: string) => parseFloat(v) > 10 },
+              { id: 'vhs', label: 'VHS (mm/h)', val: vhs, set: setVhs, alerta: (v: string) => parseFloat(v) > 20 },
+              { id: 'creatinina', label: 'Creatinina (mg/dL)', val: creatinina, set: setCreatinina, alerta: (v: string) => parseFloat(v) > 1.2 },
+              { id: 'ureia', label: 'Ureia (mg/dL)', val: ureia, set: setUreia, alerta: (v: string) => parseFloat(v) > 50 },
+            ].map(item => (
+              <div key={item.id} className="space-y-1">
+                <Label className="text-xs text-gray-500">{item.label}</Label>
+                <Input type="number" step="0.1" min="0" value={item.val} onChange={(e) => item.set(e.target.value)} placeholder="–" className={`text-sm ${item.val && item.alerta(item.val) ? 'border-red-400' : ''}`} />
+              </div>
+            ))}
+          </div>
+          <Separator />
+          {/* Culturas */}
+          <TriSwitch label="Culturas solicitadas?" value={culturasSolicitadas} onChange={setCulturasSolicitadas} />
+          {culturasSolicitadas === 'sim' && (
+            <TriSwitch label="Resultado disponível?" value={culturasResultado} onChange={setCulturasResultado} />
+          )}
+          <Separator />
+          {/* Infectologia */}
+          <TriSwitch label="Avaliado pela infectologia?" value={infectAvaliado} onChange={setInfectAvaliado} />
+          {infectAvaliado === 'sim' && (
+            <div className="space-y-1.5">
+              <Label className="text-sm">Nome do infectologista</Label>
+              <Input value={nomeInfectologista} onChange={(e) => setNomeInfectologista(e.target.value)} placeholder="Dr(a). nome" className="max-w-xs" />
+            </div>
+          )}
+          <Separator />
+          {/* Antibióticos */}
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-sm">Antibiótico atual</Label>
+              <Input value={antibioticoAtual} onChange={(e) => setAntibioticoAtual(e.target.value)} placeholder="Ex: Vancomicina 1g" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Dia de tratamento</Label>
+              <Input type="number" min="1" value={diaTratamento} onChange={(e) => setDiaTratamento(e.target.value)} placeholder="Ex: 5" />
+            </div>
+            <div className="sm:col-span-2 space-y-1.5">
+              <Label className="text-sm">Antibióticos prévios</Label>
+              <Input value={antibioticosPrevios} onChange={(e) => setAntibioticosPrevios(e.target.value)} placeholder="Ex: Cefazolina 7 dias" />
+            </div>
+          </div>
+          <Separator />
+          {/* Cirurgias de infecção */}
+          <TriSwitch label="Lavagem cirúrgica realizada?" value={lavCirurgicaRealizada} onChange={setLavCirurgicaRealizada} />
+          {lavCirurgicaRealizada === 'sim' && (
+            <div className="space-y-1.5">
+              <Label className="text-sm">Quantas lavagens?</Label>
+              <Input type="number" min="1" max="20" value={qtdLavagens} onChange={(e) => setQtdLavagens(e.target.value)} placeholder="1" className="max-w-24" />
+            </div>
+          )}
+          <TriSwitch label="Retirada do implante realizada?" value={retirouImplante} onChange={setRetirouImplante} />
         </CardContent>
       </Card>
 

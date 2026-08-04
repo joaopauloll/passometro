@@ -36,10 +36,10 @@ export default async function NovaEvolucaoPage({ params }: Params) {
   }
 
   return (
-    <div>
+    <div className="max-w-2xl mx-auto">
       <div className="mb-6">
-        <Link href={`/pacientes/${id}`} className="text-sm text-blue-600 hover:underline">
-          ← Voltar para {paciente.nome}
+        <Link href={`/pacientes/${id}`} className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
+          ← {paciente.nome}
         </Link>
         <h1 className="text-2xl font-bold text-gray-900 mt-2">Nova Evolução</h1>
         <p className="text-gray-500 text-sm mt-1">

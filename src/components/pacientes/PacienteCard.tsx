@@ -1,10 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import { differenceInDays, format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { differenceInDays } from 'date-fns'
 
 type Paciente = {
   id: string
@@ -30,13 +28,24 @@ type Props = {
 }
 
 export default function PacienteCard({ paciente, onStatusChange }: Props) {
+  const [expandido, setExpandido] = useState(false)
+
   const pendenciasAbertas = paciente.pendencias.filter((p) => !p.concluida)
   const diasInternado = differenceInDays(new Date(), new Date(paciente.dataInternacao))
-  const ultimaEvolucao = paciente.evolucoes[0]
-  const altaHoje = ultimaEvolucao?.altaHoje === true
+  const altaHoje = paciente.evolucoes[0]?.altaHoje === true
+  const altaPrevista = paciente.evolucoes[0]?.altaPrevista === true
   const cirurgioes: string[] = (() => {
     try { return JSON.parse(paciente.cirurgioes) } catch { return [] }
   })()
+
+  // const accentColor = paciente.temInfeccao
+  //   ? 'border-l-red-500'
+  //   : altaHoje
+  //   ? 'border-l-green-500'
+  //   : paciente.tipoStatus === 'POS_OPERATORIO'
+  //   ? 'border-l-blue-500'
+  //   : 'border-l-slate-200'
+  const accentColor = 'border-l-slate-200'
 
   async function mudarStatus(novoStatus: string) {
     await fetch(`/api/pacientes/${paciente.id}?status=${novoStatus}`, { method: 'DELETE' })
@@ -44,107 +53,121 @@ export default function PacienteCard({ paciente, onStatusChange }: Props) {
   }
 
   return (
-    <Card className="hover:shadow-md transition-shadow border border-gray-200 bg-white">
-      <CardContent className="p-4">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1 min-w-0">
-            <Link
-              href={`/pacientes/${paciente.id}`}
-              className="font-semibold text-gray-900 hover:text-blue-600 transition-colors truncate block"
-            >
-              {paciente.nome}
-            </Link>
-            <p className="text-sm text-gray-500 mt-0.5">
-              Leito <span className="font-medium text-gray-700">{paciente.leito}</span>
-              {' · '}
-              <span>{diasInternado}d internado</span>
-            </p>
-          </div>
-          <div className="flex flex-col items-end gap-1 ml-2 flex-shrink-0">
+    <div className={`bg-white rounded-xl border border-slate-200 border-l-4 ${accentColor} shadow-sm hover:shadow-md transition-shadow overflow-hidden`}>
+      {/* ── Header row (always visible, click to toggle) ── */}
+      <button
+        type="button"
+        onClick={() => setExpandido(!expandido)}
+        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50/60 transition-colors"
+      >
+        {/* Leito badge */}
+        <span className="flex-shrink-0 text-xs font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md min-w-[40px] text-center">
+          {paciente.leito}
+        </span>
+
+        {/* Name + subtitle */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-slate-900 text-sm leading-tight">{paciente.nome}</span>
+            {/* Status badges */}
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+              paciente.tipoStatus === 'POS_OPERATORIO' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'
+            }`}>
+              {paciente.tipoStatus === 'POS_OPERATORIO' ? 'Pós-Op' : 'Pré-Op'}
+            </span>
             {paciente.temInfeccao && (
-              <Badge variant="destructive" className="text-xs">Infecção</Badge>
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 flex-shrink-0">⚠ Infecção</span>
             )}
             {altaHoje && (
-              <Badge className="text-xs bg-green-100 text-green-800 border-green-200">Alta hoje</Badge>
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 flex-shrink-0">Alta hoje</span>
+            )}
+            {!altaHoje && altaPrevista && (
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 flex-shrink-0">Alta prevista</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400 flex-wrap">
+            {cirurgioes.length > 0 && <span>Dr. {cirurgioes[0]}</span>}
+            {cirurgioes.length > 0 && <span>·</span>}
+            <span>{diasInternado}d internado</span>
+            {pendenciasAbertas.length > 0 && (
+              <>
+                <span>·</span>
+                <span className="text-amber-600 font-medium">{pendenciasAbertas.length} pendência{pendenciasAbertas.length > 1 ? 's' : ''}</span>
+              </>
             )}
           </div>
         </div>
 
-        {/* Diagnóstico */}
-        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-          {paciente.diagnostico}
-          {paciente.cid && <span className="text-gray-400 ml-1">({paciente.cid})</span>}
-        </p>
+        {/* Expand arrow */}
+        <span className="text-slate-400 text-xs flex-shrink-0 transition-transform duration-200" style={{ transform: expandido ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+      </button>
 
-        {/* Status */}
-        <div className="flex items-center gap-2 mb-3">
-          <Badge
-            variant="outline"
-            className={`text-xs ${paciente.tipoStatus === 'POS_OPERATORIO' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}
-          >
-            {paciente.tipoStatus === 'POS_OPERATORIO' ? 'Pós-Op' : 'Pré-Op'}
-          </Badge>
-          {cirurgioes.length > 0 && (
-            <span className="text-xs text-gray-500 truncate">Dr. {cirurgioes[0]}</span>
-          )}
-        </div>
+      {/* ── Expanded section ── */}
+      {expandido && (
+        <div className="border-t border-slate-100 px-4 py-3 space-y-3">
+          {/* Diagnóstico */}
+          <p className="text-sm text-slate-700 leading-snug">
+            {paciente.diagnostico}
+            {paciente.cid && <span className="text-slate-400 ml-1 text-xs">· {paciente.cid}</span>}
+          </p>
 
-        {/* Pendências */}
-        {pendenciasAbertas.length > 0 && (
-          <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-md">
-            <p className="text-xs font-medium text-amber-800 mb-1">
-              {pendenciasAbertas.length} pendência{pendenciasAbertas.length > 1 ? 's' : ''}
+          {/* Cirurgias recentes */}
+          {paciente.cirurgias.length > 0 && (
+            <p className="text-xs text-slate-500">
+              🔪 {paciente.cirurgias[0].nomeCirurgia}
+              <span className="text-slate-400 ml-1">({new Date(paciente.cirurgias[0].dataCirurgia).toLocaleDateString('pt-BR')})</span>
             </p>
-            <div className="flex flex-wrap gap-1">
-              {pendenciasAbertas.slice(0, 3).map((p) => (
-                <span key={p.id} className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
-                  {p.tipo}
-                </span>
-              ))}
-              {pendenciasAbertas.length > 3 && (
-                <span className="text-xs text-amber-600">+{pendenciasAbertas.length - 3}</span>
+          )}
+
+          {/* Pendências */}
+          {pendenciasAbertas.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              <div className="flex flex-wrap gap-1">
+                {pendenciasAbertas.slice(0, 5).map((p) => (
+                  <span key={p.id} className="text-[10px] font-medium bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+                    {p.tipo}
+                  </span>
+                ))}
+                {pendenciasAbertas.length > 5 && (
+                  <span className="text-[10px] text-amber-500">+{pendenciasAbertas.length - 5}</span>
+                )}
+              </div>
+              <p className="text-[10px] text-amber-600 mt-1 font-medium">{pendenciasAbertas.length} pendência{pendenciasAbertas.length > 1 ? 's' : ''} em aberto</p>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-1">
+            <Link
+              href={`/pacientes/${paciente.id}`}
+              className="inline-flex items-center gap-1 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+              onClick={e => e.stopPropagation()}
+            >
+              Ver prontuário →
+            </Link>
+            <div className="flex gap-1">
+              {paciente.status === 'INTERNADO' && (
+                <>
+                  <button onClick={e => { e.stopPropagation(); mudarStatus('ALTA_ORTOPEDIA') }}
+                    className="text-[11px] text-slate-400 hover:text-slate-700 px-2 py-1 rounded hover:bg-slate-100 transition-colors">
+                    Alta Orto.
+                  </button>
+                  <button onClick={e => { e.stopPropagation(); mudarStatus('ALTA_HOSPITALAR') }}
+                    className="text-[11px] text-slate-400 hover:text-slate-700 px-2 py-1 rounded hover:bg-slate-100 transition-colors">
+                    Alta Hosp.
+                  </button>
+                </>
+              )}
+              {paciente.status === 'ALTA_ORTOPEDIA' && (
+                <button onClick={e => { e.stopPropagation(); mudarStatus('ALTA_HOSPITALAR') }}
+                  className="text-[11px] text-slate-400 hover:text-slate-700 px-2 py-1 rounded hover:bg-slate-100 transition-colors">
+                  Alta Hospitalar
+                </button>
               )}
             </div>
           </div>
-        )}
-
-        {/* Ações rápidas */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-          <Link
-            href={`/pacientes/${paciente.id}`}
-            className="text-xs text-blue-600 hover:underline"
-          >
-            Ver detalhes
-          </Link>
-          <div className="flex gap-1">
-            {paciente.status === 'INTERNADO' && (
-              <>
-                <button
-                  onClick={() => mudarStatus('ALTA_ORTOPEDIA')}
-                  className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100 transition-colors"
-                >
-                  Alta Orto.
-                </button>
-                <button
-                  onClick={() => mudarStatus('ALTA_HOSPITALAR')}
-                  className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100 transition-colors"
-                >
-                  Alta Hosp.
-                </button>
-              </>
-            )}
-            {paciente.status === 'ALTA_ORTOPEDIA' && (
-              <button
-                onClick={() => mudarStatus('ALTA_HOSPITALAR')}
-                className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100 transition-colors"
-              >
-                Alta Hospitalar
-              </button>
-            )}
-          </div>
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   )
 }

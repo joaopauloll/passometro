@@ -40,19 +40,24 @@ export default function PacienteListaCliente({ contadores }: Props) {
   const [tabAtiva, setTabAtiva] = useState('INTERNADO')
   const [busca, setBusca] = useState('')
   const [filtroLeito, setFiltroLeito] = useState('')
+  const [filtroCirurgiao, setFiltroCirurgiao] = useState('')
+  const [filtroSubesp, setFiltroSubesp] = useState('')
+  const [filtroTipoStatus, setFiltroTipoStatus] = useState('')
   const [filtroEspecial, setFiltroEspecial] = useState('todos')
   const [pacientes, setPacientes] = useState<Paciente[]>([])
   const [loading, setLoading] = useState(true)
+  const [mostrarFiltros, setMostrarFiltros] = useState(false)
 
   const fetchPacientes = useCallback(async () => {
     setLoading(true)
-    const params = new URLSearchParams({
-      status: tabAtiva,
-      busca,
-      leito: filtroLeito,
-      ...(filtroEspecial === 'infectados' && { infeccao: 'true' }),
-      ...(filtroEspecial === 'alta-hoje' && { altaHoje: 'true' }),
-    })
+    const params = new URLSearchParams({ status: tabAtiva, busca, leito: filtroLeito })
+    if (filtroCirurgiao) params.set('cirurgiao', filtroCirurgiao)
+    if (filtroSubesp) params.set('subespecialidade', filtroSubesp)
+    if (filtroTipoStatus) params.set('tipoStatus', filtroTipoStatus)
+    if (filtroEspecial === 'infectados') params.set('infeccao', 'true')
+    if (filtroEspecial === 'alta-hoje') params.set('altaHoje', 'true')
+    if (filtroEspecial === 'aguardando-risco') params.set('aguardandoRisco', 'true')
+    if (filtroEspecial === 'aguardando-cirurgia') params.set('aguardandoCirurgia', 'true')
     try {
       const res = await fetch(`/api/pacientes?${params}`)
       const data = await res.json()
@@ -62,7 +67,7 @@ export default function PacienteListaCliente({ contadores }: Props) {
     } finally {
       setLoading(false)
     }
-  }, [tabAtiva, busca, filtroLeito, filtroEspecial])
+  }, [tabAtiva, busca, filtroLeito, filtroCirurgiao, filtroSubesp, filtroTipoStatus, filtroEspecial])
 
   useEffect(() => {
     fetchPacientes()
@@ -73,6 +78,8 @@ export default function PacienteListaCliente({ contadores }: Props) {
     ALTA_ORTOPEDIA: `Alta Ortopedia (${contadores.altaOrtopedia})`,
     ALTA_HOSPITALAR: `Alta Hospitalar (${contadores.altaHospitalar})`,
   }
+
+  const temFiltrosAtivos = busca || filtroLeito || filtroCirurgiao || filtroSubesp || filtroTipoStatus || filtroEspecial !== 'todos'
 
   return (
     <div>
@@ -85,33 +92,72 @@ export default function PacienteListaCliente({ contadores }: Props) {
               </TabsTrigger>
             ))}
           </TabsList>
+          <button
+            onClick={() => setMostrarFiltros(!mostrarFiltros)}
+            className={`text-sm px-3 py-1.5 rounded-lg border transition-all font-medium ${temFiltrosAtivos ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'}`}
+          >
+            {temFiltrosAtivos ? '● ' : ''}Filtros {mostrarFiltros ? '▲' : '▼'}
+          </button>
         </div>
 
         {/* Filtros */}
-        <div className="flex flex-col sm:flex-row gap-2 mb-6">
-          <Input
-            placeholder="Buscar por nome, diagnóstico ou registro…"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            className="sm:max-w-xs bg-white"
-          />
-          <Input
-            placeholder="Filtrar por leito…"
-            value={filtroLeito}
-            onChange={(e) => setFiltroLeito(e.target.value)}
-            className="sm:max-w-40 bg-white"
-          />
-          <Select value={filtroEspecial} onValueChange={(v) => v && setFiltroEspecial(v)}>
-            <SelectTrigger className="sm:max-w-48 bg-white">
-              <SelectValue placeholder="Filtros especiais" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              <SelectItem value="pendencias">Com pendências</SelectItem>
-              <SelectItem value="infectados">Infectados</SelectItem>
-              <SelectItem value="alta-hoje">Alta hoje</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className={`mb-6 bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3 ${mostrarFiltros ? '' : 'hidden'}`}>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Input
+              placeholder="Buscar por nome, diagnóstico ou registro…"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              className="sm:max-w-xs bg-white"
+            />
+            <Input
+              placeholder="Leito…"
+              value={filtroLeito}
+              onChange={(e) => setFiltroLeito(e.target.value)}
+              className="sm:max-w-32 bg-white"
+            />
+            <Input
+              placeholder="Cirurgião…"
+              value={filtroCirurgiao}
+              onChange={(e) => setFiltroCirurgiao(e.target.value)}
+              className="sm:max-w-40 bg-white"
+            />
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Select value={filtroSubesp} onValueChange={(v) => setFiltroSubesp(v === '__todos' ? '' : (v || ''))}>
+              <SelectTrigger className="sm:max-w-44 bg-white">
+                <SelectValue placeholder="Subespecialidade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__todos">Todas</SelectItem>
+                {['Quadril','Joelho','Ombro','Cotovelo','Mão e Punho','Pé e Tornozelo','Coluna','Trauma','Oncologia','Pediatria','Tumores'].map(s => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filtroTipoStatus} onValueChange={(v) => setFiltroTipoStatus(v === '__todos' ? '' : (v || ''))}>
+              <SelectTrigger className="sm:max-w-44 bg-white">
+                <SelectValue placeholder="Pré / Pós-op" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__todos">Todos</SelectItem>
+                <SelectItem value="PRE_OPERATORIO">Pré-operatório</SelectItem>
+                <SelectItem value="POS_OPERATORIO">Pós-operatório</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filtroEspecial} onValueChange={(v) => v && setFiltroEspecial(v)}>
+              <SelectTrigger className="sm:max-w-52 bg-white">
+                <SelectValue placeholder="Filtros especiais" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="pendencias">Com pendências</SelectItem>
+                <SelectItem value="infectados">Infectados</SelectItem>
+                <SelectItem value="alta-hoje">Alta hoje</SelectItem>
+                <SelectItem value="aguardando-risco">Aguardando risco cirúrgico</SelectItem>
+                <SelectItem value="aguardando-cirurgia">Aguardando cirurgia</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {Object.keys(statusLabel).map((s) => (
@@ -131,7 +177,7 @@ export default function PacienteListaCliente({ contadores }: Props) {
                 )}
               </div>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-2">
                 {pacientes
                   .filter((p) => {
                     if (filtroEspecial === 'pendencias')
