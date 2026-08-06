@@ -79,6 +79,51 @@ function cabecalho(doc: Doc, titulo: string, config?: ConfiguracaoPDF): number {
     return titleY + 8
 }
 
+function footer(doc: Doc, config?: ConfiguracaoPDF) {
+    const pageCount = doc.getNumberOfPages()
+
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i)
+
+        const pageWidth = doc.internal.pageSize.getWidth()
+        const pageHeight = doc.internal.pageSize.getHeight()
+
+        // Linha separadora
+        doc.setDrawColor(180)
+        doc.setLineWidth(0.2)
+        doc.line(15, pageHeight - 18, pageWidth - 15, pageHeight - 18)
+
+        doc.setFontSize(8)
+        doc.setTextColor(120)
+
+        // Informações do ambulatório/hospital
+        const info = [
+            config?.ambulatorioEndereco,
+            config?.ambulatorioTelefone
+                ? `Tel: ${config.ambulatorioTelefone}`
+                : undefined
+        ]
+            .filter(Boolean)
+            .join(' • ')
+
+        if (info) {
+            doc.text(info, pageWidth / 2, pageHeight - 12, {
+                align: 'center'
+            })
+        }
+
+        // Número da página
+        doc.text(
+            `Página ${i} de ${pageCount}`,
+            pageWidth - 15,
+            pageHeight - 5,
+            { align: 'right' }
+        )
+
+        doc.setTextColor(0)
+    }
+}
+
 function addTexto(doc: Doc, texto: string, y: number, bold = false, fontSize = 10): number {
     doc.setFontSize(fontSize)
     doc.setFont('helvetica', bold ? 'bold' : 'normal')
@@ -125,6 +170,7 @@ export async function gerarPrescricaoPDF(pac: PacienteParaPDF, opts: PrescricaoO
     y += 4
     addTexto(doc, pac.cirurgioes[0] ? `Dr(a). ${pac.cirurgioes[0]}` : 'Médico Responsável', y)
 
+    footer(doc, config)
     doc.save(`prescricao-${pac.nome.replace(/\s+/g, '-')}.pdf`)
 }
 
@@ -144,6 +190,7 @@ export async function gerarAtestadoPDF(pac: PacienteParaPDF, diasAfastamento: nu
     y += 4
     addTexto(doc, pac.cirurgioes[0] ? `Dr(a). ${pac.cirurgioes[0]}` : 'Médico Responsável', y)
 
+    footer(doc, config)
     doc.save(`atestado-${pac.nome.replace(/\s+/g, '-')}.pdf`)
 }
 
@@ -165,6 +212,7 @@ export async function gerarAtestadoAcompanhantePDF(config?: ConfiguracaoPDF) {
     y += 4
     addTexto(doc, 'Assinatura e carimbo do médico', y)
 
+    footer(doc, config)
     doc.save('atestado-acompanhante.pdf')
 }
 
@@ -200,6 +248,7 @@ export async function gerarLaudoPDF(pac: PacienteParaPDF, diasAfastamento = 90, 
     y += 4
     addTexto(doc, pac.cirurgioes[0] ? `Dr(a). ${pac.cirurgioes[0]}` : 'Médico Responsável', y)
 
+    footer(doc, config)
     doc.save(`laudo-${pac.nome.replace(/\s+/g, '-')}.pdf`)
 }
 
@@ -219,6 +268,7 @@ export async function gerarSolicitacaoFisioterapiaPDF(pac: PacienteParaPDF, indi
     y += 4
     addTexto(doc, pac.cirurgioes[0] ? `Dr(a). ${pac.cirurgioes[0]}` : 'Médico Solicitante', y)
 
+    footer(doc, config)
     doc.save(`fisioterapia-${pac.nome.replace(/\s+/g, '-')}.pdf`)
 }
 
@@ -250,5 +300,6 @@ export async function gerarRelatorioPDF(nomeArquivo: string, texto: string) {
             y = 15
         }
     }
+    footer(doc)
     doc.save(`${nomeArquivo}.pdf`)
 }

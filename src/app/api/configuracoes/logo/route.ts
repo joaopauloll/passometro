@@ -17,11 +17,11 @@ export async function POST(req: NextRequest) {
     if (!allowed.includes(ext)) return NextResponse.json({ error: 'Formato inválido' }, { status: 400 })
 
     const filename = `logo.${ext}`
-    const dir = path.join(process.cwd(), 'public', 'uploads', 'hospital')
+    const dir = path.join(process.cwd(), 'uploads', 'hospital')
     await mkdir(dir, { recursive: true })
     await writeFile(path.join(dir, filename), Buffer.from(await file.arrayBuffer()))
 
-    const url = `/uploads/hospital/${filename}`
+    const url = `/api/uploads/hospital/${filename}`
     await prisma.configuracao.upsert({
         where: { id: 'singleton' },
         create: { id: 'singleton', hospitalLogotipoUrl: url },

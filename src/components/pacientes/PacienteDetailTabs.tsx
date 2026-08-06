@@ -658,7 +658,7 @@ function AltaTab({ paciente, cirurgias, cirurgioesList }: {
               ⬇ Gerar Atestado PDF
             </button>
               <button onClick={() => gerarLaudoPDF(pac, diasAfastamento, config)}
-              className="inline-flex items-center gap-2 text-sm font-semibold bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg transition-colors">
+              className="inline-flex items-center gap-2 text-sm font-semibold bg-blue-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg transition-colors">
               ⬇ Gerar Laudo Médico PDF
             </button>
           </div>
@@ -671,7 +671,7 @@ function AltaTab({ paciente, cirurgias, cirurgioesList }: {
         <CardContent>
           <p className="text-xs text-slate-500 mb-3">Emite um atestado em branco para o acompanhante (espaço para preenchimento manual).</p>
           <button onClick={() => gerarAtestadoAcompanhantePDF(config)}
-            className="inline-flex items-center gap-2 text-sm font-semibold bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors">
+            className="inline-flex items-center gap-2 text-sm font-semibold bg-blue-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors">
             ⬇ Gerar Atestado Acompanhante
           </button>
         </CardContent>
@@ -684,9 +684,55 @@ function AltaTab({ paciente, cirurgias, cirurgioesList }: {
           <textarea rows={4} value={indicacaoFisio} onChange={e => setIndicacaoFisio(e.target.value)}
             className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
           <button onClick={() => gerarSolicitacaoFisioterapiaPDF(pac, indicacaoFisio, config)}
-            className="inline-flex items-center gap-2 text-sm font-semibold bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+            className="inline-flex items-center gap-2 text-sm font-semibold bg-blue-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
             ⬇ Gerar Solicitação PDF
           </button>
+        </CardContent>
+      </Card>
+      
+      {/* Relatório */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold">
+            📄 Relatório Médico
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent>
+          <p className="text-xs text-slate-500 mb-3">
+            Gera um relatório completo do paciente contendo identificação, diagnóstico,
+            histórico, cirurgias, exames e evolução clínica.
+          </p>
+
+          <Link
+            href={`/pacientes/${paciente.id}/relatorio`}
+            className="inline-flex items-center gap-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            ⬇ Gerar Relatório
+          </Link>
+        </CardContent>
+      </Card>
+
+      {/* Calendário */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold">
+            📅 Calendário do Paciente
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent>
+          <p className="text-xs text-slate-500 mb-3">
+            Gera um calendário com os principais eventos da internação, incluindo
+            cirurgias, evoluções e demais registros do paciente.
+          </p>
+
+          <Link
+            href={`/pacientes/${paciente.id}/calendario`}
+            className="inline-flex items-center gap-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            ⬇ Gerar Calendário
+          </Link>
         </CardContent>
       </Card>
     </div>

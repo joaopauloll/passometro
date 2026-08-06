@@ -31,12 +31,12 @@ export default function EvolucoesList({ evolucoes, pacienteId }: Props) {
           <CardTitle className="text-sm text-gray-500 font-medium uppercase tracking-wide">
             Histórico de Evoluções ({evolucoes.length})
           </CardTitle>
-          <Link
+          {/* <Link
             href={`/pacientes/${pacienteId}/evolucao/nova`}
             className="inline-flex items-center gap-1 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-md transition-colors"
           >
             + Nova evolução
-          </Link>
+          </Link> */}
         </div>
       </CardHeader>
       <CardContent className="space-y-2">

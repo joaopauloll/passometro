@@ -16,12 +16,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
 
           {/* Nav links (desktop inline + mobile dropdown) */}
-          <div className="flex-1 flex items-center">
+          <div className="flex-1 flex justify-end md:justify-start">
             <NavLinks />
           </div>
 
           {/* Right actions (desktop only) */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="hidden md:flex items-center gap-2 flex-shrink-0">
             <Link
               href="/pacientes/novo"
               className="hidden md:inline-flex text-sm font-medium bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-4 py-2 rounded-lg transition-colors shadow-sm"

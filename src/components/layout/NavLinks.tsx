@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import LogoutButton from '@/components/layout/LogoutButton'
 
 const NAV_LINKS = [
   { href: '/dashboard', label: 'Enfermaria' },
@@ -95,6 +96,9 @@ export default function NavLinks() {
                 className="block text-center text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
                 + Novo Paciente
               </Link>
+            </div>
+            <div className="border-t border-slate-100 px-4 py-3">
+              <LogoutButton />
             </div>
           </div>
         )}
