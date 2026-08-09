@@ -221,6 +221,7 @@ model ExameImagem {
   id             String    @id @default(cuid())
   pacienteId     String
   tipo           String    // RX | TC | RM | ECO | ECG | OUTRO
+  lateralidade   String?
   descricao      String?
   dataRealizacao DateTime?
   sitio          String?
@@ -247,7 +248,8 @@ model Configuracao {
 model Foto {
   id         String    @id @default(cuid())
   pacienteId String
-  tipo       String    // RADIOGRAFIA | LESAO_PELE
+  tipo       String    // RADIOGRAFIA | LESAO_PELE | CURATIVO
+  lateralidade   String?
   url        String
   dataFoto   DateTime?
   descricao  String?
@@ -280,4 +282,43 @@ model Cultura {
   updatedAt  DateTime  @updatedAt
 
   paciente   Paciente  @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+}
+
+model ModeloAlta {
+  id                     String   @id @default(cuid())
+  especialidade          String
+  cirurgiao              String
+  nomeCirurgia           String
+
+  // Recomendações (salvas como JSON string contendo os booleans e textos)
+  // { podePisar, podeDobrarJoelho, podeSentar, podeTrocarCurativo, podeRetirarSuturas, podeDeitarLado, podeFazerFisioterapia, fisioterapiaRecomendacoes }
+  recomendacoesJson      String?  
+
+  // Textos de Orientações
+  comoTrocarCurativo     String?
+  sinaisAlarme           String?
+
+  // Retorno Ambulatorial
+  retornoDias            Int?     @default(30)
+  retornoTelefone        String?
+  retornoEndereco        String?  @default("Ambulatório do Hospital Memorial")
+  retornoCep             String?
+
+  // Prescrição
+  // Array JSON de medicamentos selecionados: ["Dipirona 1g — 6/6h...", "Tramadol 50mg..."]
+  prescricaoMedicamentos String?  
+  prescricaoTexto        String?  
+
+  // Órtese
+  orteseTipo             String?  @default("Nenhuma")
+  orteseInstrucoes       String?
+
+  // Laudos e Atestados
+  laudoTexto             String?  
+  atestadoTexto          String?  
+
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@unique([cirurgiao, nomeCirurgia])
 }

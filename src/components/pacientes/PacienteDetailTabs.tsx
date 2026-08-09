@@ -14,6 +14,7 @@ import {
   gerarLaudoPDF, gerarSolicitacaoFisioterapiaPDF, carregarLogoBase64,
   type PacienteParaPDF, type ConfiguracaoPDF,
 } from '@/lib/pdfUtils'
+import AbaAlta from "./AbaAlta";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -58,7 +59,7 @@ type Props = {
   cirurgioesList: string[]
 }
 
-type Tab = 'resumo' | 'evolucoes' | 'cirurgias' | 'pareceres' | 'laboratorio' | 'imagens' | 'exames-imagem' | 'alta' | 'pendencias'
+type Tab = 'resumo' | 'evolucoes' | 'cirurgias' | 'pareceres' | 'laboratorio' | 'imagens' | 'alta' | 'pendencias'
 
 const TABS: { id: Tab; label: string; count?: (p: Props) => number }[] = [
   { id: 'resumo', label: 'Resumo' },
@@ -66,8 +67,7 @@ const TABS: { id: Tab; label: string; count?: (p: Props) => number }[] = [
   { id: 'cirurgias', label: 'Cirurgias', count: p => p.cirurgias.length },
   { id: 'pareceres', label: 'Pareceres', count: p => p.pareceres.length },
   { id: 'laboratorio', label: 'Laboratório' },
-  { id: 'imagens', label: 'Fotos', count: p => p.fotos.length },
-  { id: 'exames-imagem', label: 'Exames de Imagem', count: p => p.examesImagem.length },
+  { id: 'imagens', label: 'Exames de Imagem', count: p => p.fotos.length },
   { id: 'alta', label: 'Alta' },
   { id: 'pendencias', label: 'Pendências', count: p => p.pendencias.filter(x => !x.concluida).length },
 ]
@@ -113,9 +113,15 @@ export default function PacienteDetailTabs(props: Props) {
       {tab === 'cirurgias' && <CirurgiasTab cirurgias={cirurgias} pacienteId={paciente.id} />}
       {tab === 'pareceres' && <ParecerTab pareceres={pareceres} pacienteId={paciente.id} />}
       {tab === 'laboratorio' && <LaboratorioTab evolucoes={evolucoes} culturas={culturas} pacienteId={paciente.id} />}
-      {tab === 'imagens' && <ImagensTab fotos={fotos} pacienteId={paciente.id} />}
-      {tab === 'exames-imagem' && <ExamesImagemTab exames={examesImagem} pacienteId={paciente.id} />}
-      {tab === 'alta' && <AltaTab paciente={paciente} cirurgias={cirurgias} cirurgioesList={cirurgioesList} />}
+      {tab === 'imagens' && (
+        <ExamesImagemTab 
+          examesIniciais={examesImagem} 
+          fotosIniciais={fotos} 
+          pacienteId={paciente.id} 
+          evolucoes={evolucoes}
+        />
+      )}
+      {tab === 'alta' && <AltaTab paciente={paciente} cirurgias={cirurgias} />}
       {tab === 'pendencias' && (
         <PendenciasSection
           pendencias={pendencias}
@@ -518,223 +524,64 @@ function LaboratorioTab({ evolucoes, culturas: iniciais, pacienteId }: {
   )
 }
 
-// ─── Imagens Tab ──────────────────────────────────────────────────────────────
-
-function ImagensTab({ fotos, pacienteId }: { fotos: Foto[]; pacienteId: string }) {
-  const [fotosList, setFotosList] = useState(fotos)
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <Link href={`/pacientes/${pacienteId}/editar`}
-          className="inline-flex items-center gap-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
-          + Adicionar imagens (via Editar)
-        </Link>
-      </div>
-      {fotosList.length === 0 ? (
-        <p className="text-sm text-slate-400 text-center py-8">Nenhuma imagem registrada.</p>
-      ) : (
-        <FotosSectionView
-          pacienteId={pacienteId}
-          fotos={fotosList}
-          onFotaDeletada={id => setFotosList(prev => prev.filter(f => f.id !== id))}
-        />
-      )}
-    </div>
-  )
-}
-
 // ─── Alta Tab ────────────────────────────────────────────────────────────────
 
-function AltaTab({ paciente, cirurgias, cirurgioesList }: {
-  paciente: Paciente; cirurgias: Cirurgia[]; cirurgioesList: string[]
-}) {
-  const [config, setConfig] = useState<ConfiguracaoPDF>({})
-  useEffect(() => {
-    fetch('/api/configuracoes').then(r => r.json()).then(async (data) => {
-      let logoBase64: string | undefined
-      if (data.hospitalLogotipoUrl) {
-        logoBase64 = await carregarLogoBase64(data.hospitalLogotipoUrl).catch(() => undefined)
-      }
-      setConfig({ ...data, hospitalLogotipoBase64: logoBase64 })
-    }).catch(() => {})
-  }, [])
-
-  const pac: PacienteParaPDF = {
-    nome: paciente.nome,
-    cpf: paciente.cpf,
-    dataNascimento: paciente.dataNascimento,
-    dataInternacao: paciente.dataInternacao,
-    diagnostico: paciente.diagnostico,
-    cid: paciente.cid,
-    cirurgioes: cirurgioesList,
-    medicacoes: paciente.medicacoes,
-    alergias: paciente.alergias,
-    traumaMecanismo: paciente.traumaMecanismo,
-    traumaData: paciente.traumaData,
-    cirurgias: cirurgias.map(c => ({ nomeCirurgia: c.nomeCirurgia, cirurgiao: c.cirurgiao, dataCirurgia: c.dataCirurgia })),
-  }
-
-  // Prescription state
-  const [prescOpts, setPrescOpts] = useState({
-    usaDipirona: true, usaTramadol: true, usaTamarine: true,
-    diasRivaroxabana: 30, usaCefadroxila: true, extras: ['', ''],
-  })
-
-  // Atestado state
-  const [diasAfastamento, setDiasAfastamento] = useState(90)
-  const [dataEmissao, setDataEmissao] = useState(new Date().toISOString().split('T')[0])
-
-  // Fisioterapia state
-  const nomeCirurgia = cirurgias[0]?.nomeCirurgia || ''
-  const [indicacaoFisio, setIndicacaoFisio] = useState(
-    nomeCirurgia
-      ? `Reabilitação pós-operatória de ${nomeCirurgia}. Iniciar fisioterapia motora com mobilização ativa e passiva do membro operado, treino de marcha com andador, fortalecimento muscular progressivo e orientações domiciliares.`
-      : 'Fisioterapia motora pós-operatória com mobilização progressiva, fortalecimento muscular e treino de marcha.'
-  )
-
+function AltaTab({ paciente, cirurgias }: { paciente: Paciente; cirurgias: Cirurgia[] }) {
   return (
-    <div className="space-y-5">
-
-      {/* Prescrição */}
-      <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-sm font-semibold">💊 Prescrição de Alta</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {([
-              ['usaDipirona', 'Dipirona 1g'],
-              ['usaTramadol', 'Tramadol 50mg'],
-              ['usaTamarine', 'Tamarine geleia'],
-              ['usaCefadroxila', 'Cefadroxila 500mg'],
-            ] as const).map(([key, label]) => (
-              <label key={key} className="flex items-center gap-2 cursor-pointer select-none text-sm">
-                <input type="checkbox" checked={prescOpts[key]} onChange={e => setPrescOpts({ ...prescOpts, [key]: e.target.checked })} className="accent-blue-600 h-4 w-4" />
-                {label}
-              </label>
-            ))}
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-slate-600 whitespace-nowrap">Rivaroxabana</label>
-              <select value={prescOpts.diasRivaroxabana} onChange={e => setPrescOpts({ ...prescOpts, diasRivaroxabana: Number(e.target.value) })}
-                className="text-sm border border-slate-200 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500">
-                <option value={0}>Não</option>
-                <option value={15}>15 dias</option>
-                <option value={30}>30 dias</option>
-              </select>
-            </div>
-          </div>
-          {prescOpts.extras.map((e, i) => (
-            <input key={i} value={e} onChange={ev => {
-              const n = [...prescOpts.extras]; n[i] = ev.target.value
-              setPrescOpts({ ...prescOpts, extras: n })
-            }} placeholder={`Medicamento extra ${i + 1}…`}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
-          ))}
-          <button onClick={() => gerarPrescricaoPDF(pac, prescOpts, config)}
-            className="inline-flex items-center gap-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
-            ⬇ Gerar Prescrição PDF
-          </button>
-        </CardContent>
-      </Card>
-
-      {/* Atestado */}
-      <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-sm font-semibold">📄 Atestado Médico</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex gap-4 flex-wrap">
-            <div className="space-y-1">
-              <label className="text-xs text-slate-500">Dias de afastamento</label>
-              <input type="number" min={1} value={diasAfastamento} onChange={e => setDiasAfastamento(Number(e.target.value))}
-                className="w-24 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-slate-500">Data de emissão</label>
-              <input type="date" value={dataEmissao} onChange={e => setDataEmissao(e.target.value)}
-                className="text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-              <button onClick={() => gerarAtestadoPDF(pac, diasAfastamento, new Date(dataEmissao).toLocaleDateString('pt-BR'), config)}
-              className="inline-flex items-center gap-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
-              ⬇ Gerar Atestado PDF
-            </button>
-              <button onClick={() => gerarLaudoPDF(pac, diasAfastamento, config)}
-              className="inline-flex items-center gap-2 text-sm font-semibold bg-blue-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg transition-colors">
-              ⬇ Gerar Laudo Médico PDF
-            </button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Atestado Acompanhante */}
-      <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-sm font-semibold">👤 Atestado de Acompanhante</CardTitle></CardHeader>
-        <CardContent>
-          <p className="text-xs text-slate-500 mb-3">Emite um atestado em branco para o acompanhante (espaço para preenchimento manual).</p>
-          <button onClick={() => gerarAtestadoAcompanhantePDF(config)}
-            className="inline-flex items-center gap-2 text-sm font-semibold bg-blue-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors">
-            ⬇ Gerar Atestado Acompanhante
-          </button>
-        </CardContent>
-      </Card>
-
-      {/* Fisioterapia */}
-      <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-sm font-semibold">🏃 Solicitação de Fisioterapia</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <textarea rows={4} value={indicacaoFisio} onChange={e => setIndicacaoFisio(e.target.value)}
-            className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
-          <button onClick={() => gerarSolicitacaoFisioterapiaPDF(pac, indicacaoFisio, config)}
-            className="inline-flex items-center gap-2 text-sm font-semibold bg-blue-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
-            ⬇ Gerar Solicitação PDF
-          </button>
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
       
-      {/* Relatório */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">
-            📄 Relatório Médico
-          </CardTitle>
-        </CardHeader>
+      {/* Aqui entra todo aquele código novo e completo da Alta! */}
+      <AbaAlta paciente={paciente} cirurgias={cirurgias} />
+      
+      {/* 
+        Abaixo, mantivemos os seus cartões de Relatório e Calendário 
+        agrupados em um grid para ficar com o design alinhado.
+      */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        {/* Relatório */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold">
+              📄 Relatório Médico
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-slate-500 mb-3">
+              Gera um relatório completo do paciente contendo identificação, diagnóstico,
+              histórico, cirurgias, exames e evolução clínica.
+            </p>
+            <Link
+              href={`/pacientes/${paciente.id}/relatorio`}
+              className="inline-flex items-center gap-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              ⬇ Gerar Relatório
+            </Link>
+          </CardContent>
+        </Card>
 
-        <CardContent>
-          <p className="text-xs text-slate-500 mb-3">
-            Gera um relatório completo do paciente contendo identificação, diagnóstico,
-            histórico, cirurgias, exames e evolução clínica.
-          </p>
-
-          <Link
-            href={`/pacientes/${paciente.id}/relatorio`}
-            className="inline-flex items-center gap-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            ⬇ Gerar Relatório
-          </Link>
-        </CardContent>
-      </Card>
-
-      {/* Calendário */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">
-            📅 Calendário do Paciente
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent>
-          <p className="text-xs text-slate-500 mb-3">
-            Gera um calendário com os principais eventos da internação, incluindo
-            cirurgias, evoluções e demais registros do paciente.
-          </p>
-
-          <Link
-            href={`/pacientes/${paciente.id}/calendario`}
-            className="inline-flex items-center gap-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            ⬇ Gerar Calendário
-          </Link>
-        </CardContent>
-      </Card>
+        {/* Calendário */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold">
+              📅 Calendário do Paciente
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-slate-500 mb-3">
+              Gera um calendário com os principais eventos da internação, incluindo
+              cirurgias, evoluções e demais registros do paciente.
+            </p>
+            <Link
+              href={`/pacientes/${paciente.id}/calendario`}
+              className="inline-flex items-center gap-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              ⬇ Gerar Calendário
+            </Link>
+          </CardContent>
+        </Card>
+        
+      </div>
     </div>
   )
 }

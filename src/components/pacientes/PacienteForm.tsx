@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { MEDICAMENTOS_SUSPENSO, MEDICAMENTOS_COMUNS, PPS_NIVEIS } from '@/lib/medicamentos'
 import CirurgiaoMultiSelect from '@/components/pacientes/CirurgiaoMultiSelect'
-import FotoUploadSection, { type FotoPendente, type FotaSalva } from '@/components/pacientes/FotoUploadSection'
+import FotoUploadSection, { type FotoPendente, type FotoSalva } from '@/components/pacientes/FotoUploadSection'
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 
@@ -161,7 +161,7 @@ type InitialValues = Omit<Partial<FormValues>, 'comorbidadesJson' | 'infeccaoJso
   altaHospitalarData?: string | null
 }
 
-type Props = { inicial?: InitialValues; modo: 'criar' | 'editar'; fotosSalvas?: FotaSalva[] }
+type Props = { inicial?: InitialValues; modo: 'criar' | 'editar'; fotosSalvas?: FotoSalva[] }
 
 // ─── Componente ──────────────────────────────────────────────────────────────
 

@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import ImageLightbox from '@/components/ImageLightbox'
 
 export type FotoPendente = {
   file: File
@@ -14,7 +15,7 @@ export type FotoPendente = {
   previewUrl: string
 }
 
-export type FotaSalva = {
+export type FotoSalva = {
   id: string
   tipo: string
   url: string
@@ -24,7 +25,7 @@ export type FotaSalva = {
 
 type Props = {
   pacienteId?: string // undefined when creating (form not yet saved)
-  fotosSalvas?: FotaSalva[]
+  fotosSalvas?: FotoSalva[]
   onFotosPendentes?: (fotos: FotoPendente[]) => void
   onFotaDeletada?: (id: string) => void
 }
@@ -200,17 +201,26 @@ function FotoGrupo({ titulo, fotos, onDelete, onRemovePendente }: {
   onDelete?: (id: string) => void
   onRemovePendente?: (idx: number) => void
 }) {
-  const [expandida, setExpandida] = useState<string | null>(null)
+  // Novo estado para controlar o Lightbox moderno
+  const [lightbox, setLightbox] = useState({ open: false, index: 0 })
+
+  // Prepara as imagens no formato que o ImageLightbox espera
+  const lightboxImages = fotos.map(f => ({
+    url: f.url,
+    descricao: f.descricao || undefined,
+    data: f.dataFoto ? f.dataFoto.split('T')[0] : undefined // Garante o formato yyyy-mm-dd
+  }))
 
   return (
     <div>
       <p className="text-sm font-semibold text-slate-700 mb-2">{titulo}</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {fotos.map(f => (
+        {fotos.map((f, index) => (
           <div key={f.id} className="relative group">
             <button
               type="button"
-              onClick={() => setExpandida(expandida === f.id ? null : f.id)}
+              // Ao clicar, abre o lightbox no índice correto
+              onClick={() => setLightbox({ open: true, index })}
               className="block w-full"
             >
               <img
@@ -227,6 +237,7 @@ function FotoGrupo({ titulo, fotos, onDelete, onRemovePendente }: {
             {f.descricao && (
               <p className="text-[10px] text-slate-400 text-center truncate px-1">{f.descricao}</p>
             )}
+            
             {/* Delete/remove button */}
             {(onDelete || onRemovePendente) && (
               <button
@@ -241,27 +252,14 @@ function FotoGrupo({ titulo, fotos, onDelete, onRemovePendente }: {
         ))}
       </div>
 
-      {/* Modal de imagem expandida */}
-      {expandida && (
-        <div
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-          onClick={() => setExpandida(null)}
-        >
-          <div className="relative max-w-4xl max-h-[90vh]">
-            <img
-              src={fotos.find(f => f.id === expandida)?.url || ''}
-              alt="Imagem expandida"
-              className="max-w-full max-h-[90vh] object-contain rounded-xl"
-            />
-            <button
-              type="button"
-              onClick={() => setExpandida(null)}
-              className="absolute top-2 right-2 bg-white text-slate-800 rounded-full w-8 h-8 flex items-center justify-center shadow-lg text-lg font-bold"
-            >
-              ×
-            </button>
-          </div>
-        </div>
+      {/* Usando o Lightbox moderno ao invés do modal antigo */}
+      {lightbox.open && (
+        <ImageLightbox
+          images={lightboxImages}
+          currentIndex={lightbox.index}
+          onClose={() => setLightbox({ ...lightbox, open: false })}
+          onNavigate={(newIndex) => setLightbox({ ...lightbox, index: newIndex })}
+        />
       )}
     </div>
   )

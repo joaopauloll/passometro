@@ -215,36 +215,156 @@ pm2 start npm --name passometro -- start
 # Nginx como reverse proxy na porta 3000
 ```
 
-Os arquivos de upload ficam em `public/uploads/` — faça backup desta pasta junto com `prisma/dev.db`.
+Os arquivos de upload ficam em `uploads/` (pasta privada) e são servidos por rota autenticada (`/api/uploads/...`). Faça backup desta pasta junto com `prisma/dev.db`.
 
-# or
+---
 
-pnpm dev
+## Estrutura Atual (somente `src` e `uploads`)
 
-# or
+```text
+src/
+    app/
+        api/
+            auth/
+                login/
+                    route.ts
+                logout/
+                    route.ts
+            configuracoes/
+                logo/
+                    route.ts
+                route.ts
+            evolucoes/
+                route.ts
+            pacientes/
+                [id]/
+                    culturas/
+                        route.ts
+                    evolucoes/
+                        [evolucaoId]/
+                            route.ts
+                        route.ts
+                    exames-imagem/
+                        route.ts
+                    fotos/
+                        route.ts
+                    pareceres/
+                        route.ts
+                    pendencias/
+                        route.ts
+                    route.ts
+                route.ts
+            pendencias/
+                route.ts
+            uploads/
+                [...path]/
+                    route.ts
+        configuracoes/
+            layout.tsx
+            page.tsx
+        dashboard/
+            layout.tsx
+            page.tsx
+        evolucao-lista/
+            EvolucaoListaCliente.tsx
+            layout.tsx
+            page.tsx
+        login/
+            page.tsx
+        modelos-alta/
+            layout.tsx
+            ModelosAltaCliente.tsx
+            page.tsx
+        pacientes/
+            novo/
+                page.tsx
+            [id]/
+                calendario/
+                    page.tsx
+                editar/
+                    page.tsx
+                evolucao/
+                    nova/
+                        page.tsx
+                    [evolucaoId]/
+                        editar/
+                            page.tsx
+                relatorio/
+                    page.tsx
+                page.old.tsx
+                page.tsx
+            layout.tsx
+        pendencias/
+            layout.tsx
+            page.tsx
+            PendenciasGlobalCliente.tsx
+        favicon.ico
+        globals.css
+        layout.tsx
+        page.tsx
+    components/
+        dashboard/
+            DashboardMetricas.tsx
+        evolucao/
+            EvolucaoForm.tsx
+            EvolucoesList.tsx
+        layout/
+            AppShell.tsx
+            LogoutButton.tsx
+            NavLinks.tsx
+        pacientes/
+            AlterarStatusButton.tsx
+            CirurgiaoMultiSelect.old.tsx
+            CirurgiaoMultiSelect.tsx
+            ExamesImagemTab.tmp.tsx
+            ExamesImagemTab.tsx
+            FotosSectionView.tsx
+            FotoUploadSection.tsx
+            PacienteCard.old2.tsx
+            PacienteCard.tsx
+            PacienteDetailTabs.tsx
+            PacienteForm.old.tsx
+            PacienteForm.tsx
+            PacienteForm_header.tmp
+            PacienteListaCliente.tsx
+        pendencias/
+            PendenciasSection.tsx
+        relatorio/
+            PrintButton.tsx
+            RelatorioCopiarButton.tsx
+        shared/
+            DownloadPDFButton.tsx
+        ui/
+            alert.tsx
+            badge.tsx
+            button.tsx
+            card.tsx
+            checkbox.tsx
+            dialog.tsx
+            input.tsx
+            label.tsx
+            select.tsx
+            separator.tsx
+            sonner.tsx
+            tabs.tsx
+            textarea.tsx
+    lib/
+        auth.ts
+        cirurgioes.ts
+        evolucao.ts
+        medicamentos.ts
+        pdfUtils.ts
+        prisma.ts
+        utils.ts
+    types/
+        index.ts
+    proxy.ts
 
-bun dev
-
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+uploads/
+    hospital/
+        logo.jpg
+        logo.jpeg
+    pacientes/
+        <paciente-id>/
+            <arquivo-de-imagem>
 ```

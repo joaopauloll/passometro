@@ -33,7 +33,7 @@ export const WHATSAPP_CIRURGIOES: Record<string, string> = {
     'Thiago Araruna': '',
 }
 
-export const TODOS_CIRURGIOES = Object.values(ESPECIALIDADES).flat()
+export const TODOS_CIRURGIOES = Array.from(new Set(Object.values(ESPECIALIDADES).flat()))
 
 export function getEspecialidadePorCirurgiao(nome: string): string {
     const nomeNorm = nome.toLowerCase()
@@ -43,4 +43,21 @@ export function getEspecialidadePorCirurgiao(nome: string): string {
         }
     }
     return 'Sem Especialidade'
+}
+
+export interface DadosMedico {
+    nomeCompleto: string;
+    crm: string;
+    uf: string;
+}
+
+// Preencher com os dados reais dos médicos
+export const DADOS_CIRURGIOES: Record<string, DadosMedico> = {
+    'Hermann Gomes': { nomeCompleto: 'Dr. Hermann Gomes', crm: '0000', uf: 'RN' },
+    'Thales Assunção': { nomeCompleto: 'Dr. Thales Assunção', crm: '0000', uf: 'RN' },
+    // ... adicionar os demais
+};
+
+export function getDadosMedico(nome: string): DadosMedico | undefined {
+    return DADOS_CIRURGIOES[nome];
 }
