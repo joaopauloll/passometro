@@ -37,7 +37,7 @@ type Props = {
   evolucoes: any[] 
 }
 
-export default function ImagensEExamesTab({ pacienteId, examesIniciais, fotosIniciais, evolucoes = [] }: Props) {
+export default function ExamesImagemTab({ pacienteId, examesIniciais, fotosIniciais, evolucoes = [] }: Props) {
   // --- Estados ---
   const [exames, setExames] = useState(examesIniciais || [])
   const [fotos, setFotos] = useState<FotoSalva[]>(fotosIniciais || [])

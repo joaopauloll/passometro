@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import PendenciasSection from '@/components/pendencias/PendenciasSection'
+import PendenciasTab from '@/components/pendencias/PendenciasTab'
 import EvolucoesList from '@/components/evolucao/EvolucoesList'
 import FotosSectionView from '@/components/pacientes/FotosSectionView'
 import ExamesImagemTab from '@/components/pacientes/ExamesImagemTab'
@@ -14,7 +14,7 @@ import {
   gerarLaudoPDF, gerarSolicitacaoFisioterapiaPDF, carregarLogoBase64,
   type PacienteParaPDF, type ConfiguracaoPDF,
 } from '@/lib/pdfUtils'
-import AbaAlta from "./AbaAlta";
+import AltaTab from "./AltaTab";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -121,9 +121,9 @@ export default function PacienteDetailTabs(props: Props) {
           evolucoes={evolucoes}
         />
       )}
-      {tab === 'alta' && <AltaTab paciente={paciente} cirurgias={cirurgias} />}
+      {tab === 'alta' && <AltaAba paciente={paciente} cirurgias={cirurgias} />}
       {tab === 'pendencias' && (
-        <PendenciasSection
+        <PendenciasTab
           pendencias={pendencias}
           pacienteId={paciente.id}
         />
@@ -526,12 +526,12 @@ function LaboratorioTab({ evolucoes, culturas: iniciais, pacienteId }: {
 
 // ─── Alta Tab ────────────────────────────────────────────────────────────────
 
-function AltaTab({ paciente, cirurgias }: { paciente: Paciente; cirurgias: Cirurgia[] }) {
+function AltaAba({ paciente, cirurgias }: { paciente: Paciente; cirurgias: Cirurgia[] }) {
   return (
     <div className="space-y-6">
       
       {/* Aqui entra todo aquele código novo e completo da Alta! */}
-      <AbaAlta paciente={paciente} cirurgias={cirurgias} />
+      <AltaTab paciente={paciente} cirurgias={cirurgias} />
       
       {/* 
         Abaixo, mantivemos os seus cartões de Relatório e Calendário 

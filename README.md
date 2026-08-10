@@ -313,6 +313,7 @@ src/
             LogoutButton.tsx
             NavLinks.tsx
         pacientes/
+            AltaTab.tsx
             AlterarStatusButton.tsx
             CirurgiaoMultiSelect.old.tsx
             CirurgiaoMultiSelect.tsx
@@ -328,7 +329,7 @@ src/
             PacienteForm_header.tmp
             PacienteListaCliente.tsx
         pendencias/
-            PendenciasSection.tsx
+            PendenciasTab.tsx
         relatorio/
             PrintButton.tsx
             RelatorioCopiarButton.tsx

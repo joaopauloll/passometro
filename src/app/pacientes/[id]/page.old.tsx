@@ -7,7 +7,7 @@ import { ptBR } from 'date-fns/locale'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import PendenciasSection from '@/components/pendencias/PendenciasSection'
+import PendenciasTab from '@/components/pendencias/PendenciasTab'
 import EvolucoesList from '@/components/evolucao/EvolucoesList'
 import AlterarStatusButton from '@/components/pacientes/AlterarStatusButton'
 import FotosSectionView from '@/components/pacientes/FotosSectionView'
@@ -255,7 +255,7 @@ export default async function PacienteDetailPage({ params }: Params) {
 
         {/* Sidebar — pendências */}
         <div className="space-y-4">
-          <PendenciasSection
+          <PendenciasTab
             pendencias={paciente.pendencias.map(p => ({...p, createdAt: p.createdAt.toISOString(), updatedAt: p.updatedAt.toISOString()}))}
             pacienteId={id}
           />

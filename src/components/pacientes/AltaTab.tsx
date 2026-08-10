@@ -106,7 +106,7 @@ function normalizarModeloAlta(modelo: any) {
 const inputCls = "w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 transition-all";
 const textareaCls = `${inputCls} resize-none`;
 
-export default function AbaAlta({ paciente, cirurgias = [] }: { paciente: any, cirurgias?: any[] }) {
+export default function AltaTab({ paciente, cirurgias = [] }: { paciente: any, cirurgias?: any[] }) {
   const [config, setConfig] = useState<any>(null);
   const [modelos, setModelos] = useState<any[]>([]);
   const [modeloId, setModeloId] = useState<string>("");

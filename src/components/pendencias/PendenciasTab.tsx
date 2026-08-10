@@ -42,7 +42,7 @@ pendencias: Pendencia[]
 pacienteId: string
 }
 
-export default function PendenciasSection({
+export default function PendenciasTab({
 pendencias: inicial,
 pacienteId,
 }: Props) {
