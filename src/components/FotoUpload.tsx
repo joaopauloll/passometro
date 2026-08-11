@@ -1,148 +1,734 @@
-'use client'
+"use client";
 
-import React, { useState } from "react";
-import { Upload, Calendar } from "lucide-react";
+import { useRef, useState } from "react";
+import { format } from "date-fns";
+import { Upload, Calendar, Trash2, X, Image as ImageIcon } from "lucide-react";
 
-type Props = {
-  pacienteId: string;
-  tipo: string;
-  fotos?: any[];
-  onChange: (fotos: any[]) => void;
+import ImageLightbox from "@/components/ImageLightbox";
+
+export type FotoTipo = "RADIOGRAFIA" | "LESAO_PELE" | "CURATIVO";
+
+export type FotoSalva = {
+  id: string;
+  tipo: FotoTipo | string;
+  url: string;
+  dataFoto: string | null;
+  descricao: string | null;
+  lateralidade?: string | null;
 };
 
-export default function FotoUpload({ pacienteId, tipo, fotos = [], onChange }: Props) {
+export type FotoPendente = {
+  file: File;
+  tipo: FotoTipo;
+  dataFoto: string;
+  descricao: string;
+  lateralidade: string;
+  previewUrl: string;
+};
+
+type Props = {
+  /**
+   * ID do paciente.
+   *
+   * - Se existir: upload imediato.
+   * - Se não existir: fotos ficam pendentes e são devolvidas
+   *   através de onFotosPendentes.
+   */
+  pacienteId?: string;
+
+  /**
+   * Se informado, o componente trabalha somente com esse tipo.
+   *
+   * Ex:
+   * tipo="RADIOGRAFIA"
+   *
+   * Se não informado, aparece o seletor de tipo.
+   */
+  tipo?: FotoTipo;
+
+  /**
+   * Fotos já salvas.
+   */
+  fotos?: FotoSalva[];
+
+  /**
+   * Compatibilidade com o fluxo antigo do PacienteForm.
+   */
+  fotosSalvas?: FotoSalva[];
+
+  /**
+   * Chamado quando a lista de fotos salvas muda.
+   */
+  onChange?: (fotos: FotoSalva[]) => void;
+
+  /**
+   * Chamado quando existem fotos pendentes,
+   * principalmente durante a criação de um paciente.
+   */
+  onFotosPendentes?: (fotos: FotoPendente[]) => void;
+
+  /**
+   * Chamado quando uma foto salva é excluída.
+   */
+  onFotoDeletada?: (id: string) => void;
+
+  /**
+   * Permite esconder a galeria.
+   *
+   * Útil se quiser usar apenas o upload em algum lugar.
+   */
+  mostrarGaleria?: boolean;
+
+  /**
+   * Permite selecionar múltiplos arquivos.
+   */
+  multiple?: boolean;
+
+  /**
+   * Texto customizado do título.
+   */
+  titulo?: string;
+};
+
+const TIPO_LABEL: Record<FotoTipo, string> = {
+  RADIOGRAFIA: "Radiografia",
+  LESAO_PELE: "Foto de lesão",
+  CURATIVO: "Foto de curativo",
+};
+
+const TIPO_ICONE: Record<FotoTipo, string> = {
+  RADIOGRAFIA: "🩻",
+  LESAO_PELE: "🩹",
+  CURATIVO: "🩹",
+};
+
+function normalizarTipo(tipo: string): FotoTipo | string {
+  const valor = tipo.toLowerCase();
+
+  if (valor.includes("radiografia")) {
+    return "RADIOGRAFIA";
+  }
+
+  if (valor.includes("lesao")) {
+    return "LESAO_PELE";
+  }
+
+  if (valor.includes("curativo")) {
+    return "CURATIVO";
+  }
+
+  return tipo;
+}
+
+function normalizarFoto(foto: any): FotoSalva {
+  return {
+    id: foto.id,
+    tipo: normalizarTipo(foto.tipo),
+    url: foto.url,
+    dataFoto: foto.dataFoto ?? foto.data_realizacao ?? null,
+    descricao: foto.descricao ?? null,
+    lateralidade: foto.lateralidade ?? null,
+  };
+}
+
+export default function FotoUpload({
+  pacienteId,
+  tipo,
+  fotos = [],
+  fotosSalvas = [],
+  onChange,
+  onFotosPendentes,
+  onFotoDeletada,
+  mostrarGaleria = true,
+  multiple = true,
+  titulo,
+}: Props) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const [pendentes, setPendentes] = useState<FotoPendente[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [novaData, setNovaData] = useState(new Date().toISOString().slice(0, 10));
+
+  const [novaData, setNovaData] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
+
   const [novaDescricao, setNovaDescricao] = useState("");
+
   const [novaLateralidade, setNovaLateralidade] = useState("nao_aplicavel");
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    setUploading(true);
-    
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      // Mapeamento de segurança para o padrão que a API espera
-      const tipoNormalizado = tipo.toLowerCase();
-      const tipoMapeado = 
-        tipoNormalizado.includes('radiografia') ? 'RADIOGRAFIA' : 
-        tipoNormalizado.includes('lesao') ? 'LESAO_PELE' : 
-        tipoNormalizado.includes('curativo') ? 'CURATIVO' : tipo;
+  const [tipoSelecionado, setTipoSelecionado] = useState<FotoTipo>(
+    tipo || "RADIOGRAFIA",
+  );
 
-      formData.append('tipo', tipoMapeado);
-      
-      if (novaDescricao.trim()) formData.append('descricao', novaDescricao.trim());
-      if (novaData) formData.append('dataFoto', novaData);
-      if (novaLateralidade !== 'nao_aplicavel') formData.append('lateralidade', novaLateralidade);
+  const [lightbox, setLightbox] = useState({
+    open: false,
+    index: 0,
+  });
 
-      // Chamada para a sua API real
-      const res = await fetch(`/api/pacientes/${pacienteId}/fotos`, {
-        method: 'POST',
-        body: formData,
-      });
+  /*
+   * Aceitamos tanto fotos quanto fotosSalvas.
+   *
+   * Isso facilita a migração do código antigo.
+   */
+  const fotosAtuais =
+    fotos.length > 0
+      ? fotos.map(normalizarFoto)
+      : fotosSalvas.map(normalizarFoto);
 
-      if (!res.ok) throw new Error('Falha ao enviar a imagem.');
+  const tipoAtual = tipo || tipoSelecionado;
 
-      const data = await res.json();
-      
-      // Garantir que pegamos o objeto correto da foto salva
-      const novaFoto = Array.isArray(data.fotos) ? data.fotos[0] : (Array.isArray(data) ? data[0] : data);
+  const label = TIPO_LABEL[tipoAtual] || "Foto";
 
-      // Adiciona a nova foto ao array existente do componente pai
-      onChange([...fotos, novaFoto]);
-      
-      // Limpar os campos para a próxima foto
+  const fotosDoTipo = tipo
+    ? fotosAtuais.filter((foto) => normalizarTipo(foto.tipo) === tipo)
+    : fotosAtuais;
+
+  const handleFiles = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+
+    const files = Array.from(fileList);
+
+    /*
+     * Quando o paciente ainda não existe,
+     * as imagens precisam ficar pendentes.
+     */
+    if (!pacienteId) {
+      const novas: FotoPendente[] = files.map((file) => ({
+        file,
+        tipo: tipoAtual,
+        dataFoto: novaData,
+        descricao: novaDescricao.trim(),
+        lateralidade: novaLateralidade,
+        previewUrl: URL.createObjectURL(file),
+      }));
+
+      const updated = multiple ? [...pendentes, ...novas] : novas.slice(0, 1);
+
+      setPendentes(updated);
+      onFotosPendentes?.(updated);
+
+      /*
+       * Limpa os campos para a próxima seleção.
+       */
       setNovaDescricao("");
       setNovaLateralidade("nao_aplicavel");
-      
+
+      return;
+    }
+
+    /*
+     * Paciente já existe:
+     * upload imediato.
+     */
+    setUploading(true);
+
+    try {
+      for (const file of files) {
+        await uploadFoto(file);
+      }
+
+      setNovaDescricao("");
+      setNovaLateralidade("nao_aplicavel");
     } catch (error) {
       console.error("Erro no upload:", error);
-      alert("Erro ao enviar a imagem. Tente novamente.");
+      alert("Erro ao enviar uma ou mais imagens. Tente novamente.");
     } finally {
       setUploading(false);
-      e.target.value = ""; // Reseta o input de arquivo
+
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
     }
   };
 
-  const isRadiografia = tipo.toLowerCase().includes("radiografia");
-  const isLesao = tipo.toLowerCase().includes("lesao");
-  const label = isRadiografia ? "Radiografia" : isLesao ? "Foto de lesão" : "Foto";
+  async function uploadFoto(file: File) {
+    if (!pacienteId) return;
+
+    const formData = new FormData();
+
+    formData.append("file", file);
+    formData.append("tipo", tipoAtual);
+
+    if (novaDescricao.trim()) {
+      formData.append("descricao", novaDescricao.trim());
+    }
+
+    if (novaData) {
+      formData.append("dataFoto", novaData);
+    }
+
+    if (novaLateralidade !== "nao_aplicavel") {
+      formData.append("lateralidade", novaLateralidade);
+    }
+
+    const response = await fetch(`/api/pacientes/${pacienteId}/fotos`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error("Falha ao enviar a imagem.");
+    }
+
+    const data = await response.json();
+
+    /*
+     * Sua API aparentemente pode retornar:
+     *
+     * { fotos: [...] }
+     * ou
+     * [...]
+     * ou
+     * foto
+     */
+    let novaFoto: any;
+
+    if (Array.isArray(data?.fotos)) {
+      novaFoto = data.fotos[0];
+    } else if (Array.isArray(data)) {
+      novaFoto = data[0];
+    } else {
+      novaFoto = data;
+    }
+
+    if (!novaFoto) {
+      throw new Error("A API não retornou a foto criada.");
+    }
+
+    const fotoNormalizada = normalizarFoto(novaFoto);
+
+    /*
+     * O componente continua controlado pelo pai.
+     */
+    onChange?.([...fotosAtuais, fotoNormalizada]);
+  }
+
+  async function removerPendente(index: number) {
+    const foto = pendentes[index];
+
+    if (foto?.previewUrl) {
+      URL.revokeObjectURL(foto.previewUrl);
+    }
+
+    const updated = pendentes.filter((_, i) => i !== index);
+
+    setPendentes(updated);
+    onFotosPendentes?.(updated);
+  }
+
+  async function deletarFoto(id: string) {
+    if (!pacienteId) return;
+
+    const response = await fetch(
+      `/api/pacientes/${pacienteId}/fotos?fotoId=${id}`,
+      {
+        method: "DELETE",
+      },
+    );
+
+    if (!response.ok) {
+      alert("Não foi possível excluir a imagem.");
+      return;
+    }
+
+    const updated = fotosAtuais.filter((foto) => foto.id !== id);
+
+    onChange?.(updated);
+    onFotoDeletada?.(id);
+  }
+
+  async function atualizarFoto(id: string, dados: Partial<FotoSalva>) {
+    if (!pacienteId) return;
+
+    const response = await fetch(`/api/pacientes/${pacienteId}/fotos`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        fotoId: id,
+        ...dados,
+      }),
+    });
+
+    if (!response.ok) {
+      alert("Não foi possível atualizar a imagem.");
+      return;
+    }
+
+    const updated = fotosAtuais.map((foto) =>
+      foto.id === id
+        ? {
+            ...foto,
+            ...dados,
+          }
+        : foto,
+    );
+
+    onChange?.(updated);
+  }
+
+  const imagensLightbox = fotosDoTipo.map((foto) => ({
+    url: foto.url,
+    descricao: foto.descricao || undefined,
+    data: foto.dataFoto ? foto.dataFoto.slice(0, 10) : undefined,
+  }));
 
   return (
-    <div>
-      {/* Upload area */}
-      <div className="flex flex-col sm:flex-row gap-2 mb-3">
-        <div className="flex-1">
+    <div className="space-y-4">
+      {/* -------------------------------- */}
+      {/* TÍTULO / SELETOR DE TIPO */}
+      {/* -------------------------------- */}
+
+      {titulo && (
+        <div className="flex items-center gap-2">
+          <ImageIcon className="w-5 h-5 text-slate-400" />
+
+          <h3 className="text-base font-semibold text-slate-800">{titulo}</h3>
+        </div>
+      )}
+
+      {!tipo && (
+        <div>
+          <label className="block text-[10px] uppercase tracking-wide text-slate-400 font-medium mb-1.5">
+            Tipo de imagem
+          </label>
+
+          <div className="flex flex-wrap gap-2">
+            {(["RADIOGRAFIA", "LESAO_PELE", "CURATIVO"] as FotoTipo[]).map(
+              (t) => (
+                <label
+                  key={t}
+                  className="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer"
+                >
+                  <input
+                    type="radio"
+                    name="tipoFoto"
+                    value={t}
+                    checked={tipoSelecionado === t}
+                    onChange={() => setTipoSelecionado(t)}
+                    className="accent-blue-600"
+                  />
+
+                  <span>
+                    {TIPO_ICONE[t]} {TIPO_LABEL[t]}
+                  </span>
+                </label>
+              ),
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* -------------------------------- */}
+      {/* CAMPOS */}
+      {/* -------------------------------- */}
+
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div>
           <label className="block text-[10px] uppercase tracking-wide text-slate-400 font-medium mb-1">
-            <Calendar className="w-3 h-3 inline mr-1" />
             Data da {label.toLowerCase()}
           </label>
-          <input
-            type="date"
-            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
-            value={novaData}
-            onChange={(e) => setNovaData(e.target.value)}
-          />
+
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+
+            <input
+              type="date"
+              value={novaData}
+              onChange={(e) => setNovaData(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+            />
+          </div>
         </div>
-        <div className="flex-1">
+
+        <div>
           <label className="block text-[10px] uppercase tracking-wide text-slate-400 font-medium mb-1">
-            Descrição (opcional)
+            Descrição
           </label>
+
           <input
-            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
-            placeholder={isRadiografia ? "ex: RX quadril AP + perfil" : "ex: Lesão em perna"}
             value={novaDescricao}
             onChange={(e) => setNovaDescricao(e.target.value)}
+            placeholder={
+              tipoAtual === "RADIOGRAFIA"
+                ? "ex: RX quadril AP + perfil"
+                : tipoAtual === "LESAO_PELE"
+                  ? "ex: Lesão em perna"
+                  : "ex: Curativo pós-operatório"
+            }
+            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
           />
         </div>
       </div>
 
-      {/* Lateralidade — só para rx e lesão */}
-      {(isRadiografia || isLesao) && (
-        <div className="mb-2">
-          <label className="block text-[10px] uppercase tracking-wide text-slate-400 font-medium mb-1">Lateralidade</label>
-          <div className="flex gap-1.5">
-            {[["nao_aplicavel", "N/A"], ["direita", "Direita"], ["esquerda", "Esquerda"], ["bilateral", "Bilateral"]].map(([v, l]) => (
-              <button 
-                key={v} 
-                type="button" 
-                onClick={() => setNovaLateralidade(v)}
-                className={`px-2 py-1 rounded-lg text-[10px] font-medium border transition-all ${
-                  novaLateralidade === v 
-                    ? "bg-blue-50 border-blue-300 text-blue-600" 
-                    : "bg-white border-slate-200 text-slate-500"
+      {/* -------------------------------- */}
+      {/* LATERALIDADE */}
+      {/* -------------------------------- */}
+
+      {(tipoAtual === "RADIOGRAFIA" || tipoAtual === "LESAO_PELE") && (
+        <div>
+          <label className="block text-[10px] uppercase tracking-wide text-slate-400 font-medium mb-1.5">
+            Lateralidade
+          </label>
+
+          <div className="flex gap-1.5 flex-wrap">
+            {[
+              ["nao_aplicavel", "N/A"],
+              ["direita", "Direita"],
+              ["esquerda", "Esquerda"],
+              ["bilateral", "Bilateral"],
+            ].map(([valor, texto]) => (
+              <button
+                key={valor}
+                type="button"
+                onClick={() => setNovaLateralidade(valor)}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                  novaLateralidade === valor
+                    ? "bg-blue-50 border-blue-300 text-blue-600"
+                    : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
                 }`}
               >
-                {l}
+                {texto}
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Dropzone de Seleção */}
-      <label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed cursor-pointer transition-all ${
-        uploading 
-          ? "border-blue-300 bg-blue-50" 
-          : "border-slate-200 hover:border-blue-300 hover:bg-slate-50"
-      }`}>
-        <input type="file" accept="image/*" className="hidden" onChange={handleUpload} disabled={uploading} />
+      {/* -------------------------------- */}
+      {/* DROPZONE */}
+      {/* -------------------------------- */}
+
+      <label
+        className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed cursor-pointer transition-all ${
+          uploading
+            ? "border-blue-300 bg-blue-50"
+            : "border-slate-200 hover:border-blue-300 hover:bg-slate-50"
+        }`}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          multiple={multiple}
+          className="hidden"
+          onChange={(e) => handleFiles(e.target.files)}
+          disabled={uploading}
+        />
+
         {uploading ? (
           <>
             <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
-            <span className="text-sm text-blue-600 font-medium">Enviando e salvando...</span>
+
+            <span className="text-sm text-blue-600 font-medium">
+              Enviando e salvando...
+            </span>
           </>
         ) : (
           <>
             <Upload className="w-4 h-4 text-slate-400" />
-            <span className="text-sm text-slate-600 font-medium">Anexar {label.toLowerCase()}</span>
+
+            <span className="text-sm text-slate-600 font-medium">
+              Anexar {label.toLowerCase()}
+              {multiple ? "(s)" : ""}
+            </span>
           </>
         )}
       </label>
+
+      {/* -------------------------------- */}
+      {/* PENDENTES */}
+      {/* -------------------------------- */}
+
+      {pendentes.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold text-slate-700">
+              {TIPO_ICONE[tipoAtual]} {label} (aguardando envio)
+            </h4>
+
+            <span className="text-xs text-slate-400">
+              {pendentes.length} {pendentes.length === 1 ? "imagem" : "imagens"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {pendentes.map((foto, index) => (
+              <div
+                key={`${foto.previewUrl}-${index}`}
+                className="relative group"
+              >
+                <button
+                  type="button"
+                  className="block w-full text-left"
+                  onClick={() =>
+                    setLightbox({
+                      open: true,
+                      index,
+                    })
+                  }
+                >
+                  <img
+                    src={foto.previewUrl}
+                    alt={foto.descricao || "Imagem pendente"}
+                    className="w-full h-28 object-cover rounded-lg border border-slate-200 shadow-sm group-hover:opacity-90 transition-opacity"
+                  />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => removerPendente(index)}
+                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                  title="Remover"
+                >
+                  ×
+                </button>
+
+                {foto.dataFoto && (
+                  <div className="text-xs text-slate-500 mt-1">
+                    {format(new Date(foto.dataFoto), "dd/MM/yyyy")}
+                  </div>
+                )}
+
+                {foto.descricao && (
+                  <div
+                    className="text-xs text-slate-500 truncate"
+                    title={foto.descricao}
+                  >
+                    {foto.descricao}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* -------------------------------- */}
+      {/* FOTOS SALVAS */}
+      {/* -------------------------------- */}
+
+      {mostrarGaleria && fotosDoTipo.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold text-slate-700">
+              {TIPO_ICONE[tipoAtual]} {label} ({fotosDoTipo.length})
+            </h4>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {fotosDoTipo.map((foto, index) => {
+              const dataString = foto.dataFoto || "";
+
+              return (
+                <div key={foto.id} className="relative group">
+                  {/* Imagem */}
+                  <button
+                    type="button"
+                    className="block w-full text-left"
+                    onClick={() =>
+                      setLightbox({
+                        open: true,
+                        index,
+                      })
+                    }
+                  >
+                    <img
+                      src={foto.url}
+                      alt={foto.descricao || "Imagem"}
+                      className="w-full h-32 object-cover rounded-lg border border-slate-200 shadow-sm cursor-pointer group-hover:opacity-90 transition-opacity"
+                    />
+                  </button>
+
+                  {/* Excluir */}
+                  {pacienteId && (
+                    <button
+                      type="button"
+                      onClick={() => deletarFoto(foto.id)}
+                      className="absolute top-2 right-2 w-7 h-7 rounded-lg bg-white/90 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-50 shadow-sm"
+                      title="Excluir imagem"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+
+                  {/* Data */}
+                  {pacienteId ? (
+                    <input
+                      type="date"
+                      value={dataString ? dataString.slice(0, 10) : ""}
+                      onChange={(e) =>
+                        atualizarFoto(foto.id, {
+                          dataFoto: e.target.value,
+                        })
+                      }
+                      className="w-full mt-2 px-2 py-1 rounded text-xs text-slate-700 border border-slate-200 bg-white"
+                    />
+                  ) : (
+                    dataString && (
+                      <div className="text-xs text-slate-500 mt-1">
+                        {format(new Date(dataString), "dd/MM/yyyy")}
+                      </div>
+                    )
+                  )}
+
+                  {/* Descrição */}
+                  {foto.descricao && (
+                    <div
+                      className="text-xs text-slate-500 truncate mt-1 px-1"
+                      title={foto.descricao}
+                    >
+                      {foto.descricao}
+                    </div>
+                  )}
+
+                  {/* Lateralidade */}
+                  {foto.lateralidade &&
+                    foto.lateralidade !== "nao_aplicavel" && (
+                      <div className="text-[10px] text-slate-400 mt-0.5 px-1 capitalize">
+                        {foto.lateralidade}
+                      </div>
+                    )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* -------------------------------- */}
+      {/* VAZIO */}
+      {/* -------------------------------- */}
+
+      {mostrarGaleria && fotosDoTipo.length === 0 && pendentes.length === 0 && (
+        <p className="text-sm text-slate-400 text-center py-3">
+          Nenhuma imagem adicionada.
+        </p>
+      )}
+
+      {/* -------------------------------- */}
+      {/* LIGHTBOX */}
+      {/* -------------------------------- */}
+
+      {lightbox.open && (
+        <ImageLightbox
+          images={imagensLightbox}
+          currentIndex={lightbox.index}
+          onClose={() =>
+            setLightbox({
+              ...lightbox,
+              open: false,
+            })
+          }
+          onNavigate={(index) =>
+            setLightbox({
+              ...lightbox,
+              index,
+            })
+          }
+        />
+      )}
     </div>
   );
 }

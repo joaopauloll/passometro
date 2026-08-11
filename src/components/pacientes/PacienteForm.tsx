@@ -27,10 +27,7 @@ import {
 } from "@/lib/medicamentos";
 
 import CirurgiaoMultiSelect from "@/components/pacientes/CirurgiaoMultiSelect";
-import FotoUploadSection, {
-  type FotoPendente,
-  type FotoSalva,
-} from "@/components/pacientes/FotoUploadSection";
+import FotoUpload, { FotoPendente, FotoSalva } from "@/components/FotoUpload";
 
 /* ============================================================================
  * TIPOS
@@ -3313,9 +3310,9 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
           19. FOTOS
       ================================================================ */}
 
-      <FotoUploadSection
+      <FotoUpload
         pacienteId={modo === "editar" ? inicial?.id : undefined}
-        fotosSalvas={fotosSalvas}
+        fotos={fotosSalvas}
         onFotosPendentes={(fotos) => {
           fotosPendentesRef.current = fotos;
         }}
