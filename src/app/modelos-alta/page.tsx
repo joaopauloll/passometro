@@ -1,11 +1,32 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Plus, Pencil, Trash2, X, Save, FileText, ChevronDown, ChevronRight, Copy, Check, Pill } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+  Save,
+  FileText,
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  Check,
+  Pill,
+} from "lucide-react";
 // Ajuste os imports abaixo para o caminho correto dos seus componentes de UI
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 // Importe a lista de cirurgiões que criamos na Fase 1
-import { TODOS_CIRURGIOES, getEspecialidadePorCirurgiao } from "@/lib/cirurgioes"; 
+import {
+  TODOS_CIRURGIOES,
+  getEspecialidadePorCirurgiao,
+} from "@/lib/cirurgioes";
 
 // --- CONSTANTES ---
 const MEDICAMENTOS_ALTA = [
@@ -106,15 +127,23 @@ export default function ModelosAltaPage() {
 
   const editar = (m: any) => {
     // 1. Pegamos os nomes exatos que vêm do banco de dados (Prisma)
-    let rec = m.recomendacoesJson; 
+    let rec = m.recomendacoesJson;
     let meds = m.prescricaoMedicamentos;
 
     // 2. Convertemos de String (Texto) para Objetos do Javascript
     if (typeof rec === "string") {
-      try { rec = JSON.parse(rec); } catch (e) { rec = {}; }
+      try {
+        rec = JSON.parse(rec);
+      } catch (e) {
+        rec = {};
+      }
     }
     if (typeof meds === "string") {
-      try { meds = JSON.parse(meds); } catch (e) { meds = []; }
+      try {
+        meds = JSON.parse(meds);
+      } catch (e) {
+        meds = [];
+      }
     }
 
     // 3. Garantimos que não fiquem nulos
@@ -122,10 +151,10 @@ export default function ModelosAltaPage() {
     if (!meds || !Array.isArray(meds)) meds = [];
 
     // 4. Passamos para o estado com os nomes que a tela do React usa
-    setEditando({ 
-      ...m, 
-      recomendacoes: rec, 
-      medicamentosSelecionados: meds 
+    setEditando({
+      ...m,
+      recomendacoes: rec,
+      medicamentosSelecionados: meds,
     });
   };
 
@@ -140,16 +169,20 @@ export default function ModelosAltaPage() {
 
     // 2. Convertendo os objetos/arrays para o formato String JSON que o Prisma espera
     payload.recomendacoesJson = JSON.stringify(payload.recomendacoes || {});
-    payload.prescricaoMedicamentos = JSON.stringify(payload.medicamentosSelecionados || []);
+    payload.prescricaoMedicamentos = JSON.stringify(
+      payload.medicamentosSelecionados || [],
+    );
 
     // 3. Removemos os campos da interface que não existem no banco de dados
     delete payload.recomendacoes;
     delete payload.medicamentosSelecionados;
     delete payload.createdAt;
     delete payload.updatedAt;
-    
+
     const method = payload.id ? "PUT" : "POST";
-    const url = payload.id ? `/api/modelos-alta/${payload.id}` : "/api/modelos-alta";
+    const url = payload.id
+      ? `/api/modelos-alta/${payload.id}`
+      : "/api/modelos-alta";
 
     try {
       const res = await fetch(url, {
@@ -157,7 +190,7 @@ export default function ModelosAltaPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload), // Enviamos o payload limpo!
       });
-      
+
       if (!res.ok) {
         const errorText = await res.text();
         try {
@@ -217,10 +250,17 @@ export default function ModelosAltaPage() {
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 mb-1">Modelos de Alta</h1>
-          <p className="text-sm text-slate-500">Modelos pré-definidos por cirurgião e tipo de cirurgia</p>
+          <h1 className="text-2xl font-bold text-slate-800 mb-1">
+            Modelos de Alta
+          </h1>
+          <p className="text-sm text-slate-500">
+            Modelos pré-definidos por cirurgião e tipo de cirurgia
+          </p>
         </div>
-        <button onClick={novoModelo} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
+        <button
+          onClick={novoModelo}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"
+        >
           <Plus className="w-4 h-4" /> Novo modelo
         </button>
       </div>
@@ -235,14 +275,27 @@ export default function ModelosAltaPage() {
           {Object.entries(porEspecialidade).map(([esp, modelosEsp]) => {
             const key = `esp-${esp}`;
             return (
-              <div key={esp} className="rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-sm">
+              <div
+                key={esp}
+                className="rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-sm"
+              >
                 <button
-                  onClick={() => setExpandido((e) => ({ ...e, [key]: !e[key] }))}
+                  onClick={() =>
+                    setExpandido((e) => ({ ...e, [key]: !e[key] }))
+                  }
                   className="w-full flex items-center gap-2 px-5 py-4 hover:bg-slate-50"
                 >
-                  {expandido[key] ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
-                  <span className="font-semibold text-slate-800 text-sm">{esp}</span>
-                  <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{modelosEsp.length}</span>
+                  {expandido[key] ? (
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                  )}
+                  <span className="font-semibold text-slate-800 text-sm">
+                    {esp}
+                  </span>
+                  <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                    {modelosEsp.length}
+                  </span>
                 </button>
                 {expandido[key] && (
                   <div className="border-t border-slate-100 divide-y divide-slate-50">
@@ -250,18 +303,35 @@ export default function ModelosAltaPage() {
                       <div key={m.id} className="px-5 py-4 group">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-slate-800 text-sm">{m.nomeCirurgia}</div>
-                            <div className="text-xs text-slate-500 mt-0.5">Cirurgião: {m.cirurgiao}</div>
+                            <div className="font-medium text-slate-800 text-sm">
+                              {m.nomeCirurgia}
+                            </div>
+                            <div className="text-xs text-slate-500 mt-0.5">
+                              Cirurgião: {m.cirurgiao}
+                            </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <button onClick={() => copiarModelo(m)} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 border border-slate-200">
-                              {copiado === m.id ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                            <button
+                              onClick={() => copiarModelo(m)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 border border-slate-200"
+                            >
+                              {copiado === m.id ? (
+                                <Check className="w-3.5 h-3.5 text-green-500" />
+                              ) : (
+                                <Copy className="w-3.5 h-3.5" />
+                              )}
                               {copiado === m.id ? "Copiado" : "Copiar"}
                             </button>
-                            <button onClick={() => editar(m)} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700">
+                            <button
+                              onClick={() => editar(m)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700"
+                            >
                               <Pencil className="w-3.5 h-3.5" /> Editar
                             </button>
-                            <button onClick={() => remover(m.id)} className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium text-red-500 hover:bg-red-50 border border-red-100">
+                            <button
+                              onClick={() => remover(m.id)}
+                              className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium text-red-500 hover:bg-red-50 border border-red-100"
+                            >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
@@ -278,7 +348,12 @@ export default function ModelosAltaPage() {
 
       {/* Modal de edição */}
       {editando && (
-        <ModeloEditor modelo={editando} setModelo={setEditando} onSave={salvar} onClose={() => setEditando(null)} />
+        <ModeloEditor
+          modelo={editando}
+          setModelo={setEditando}
+          onSave={salvar}
+          onClose={() => setEditando(null)}
+        />
       )}
     </div>
   );
@@ -286,35 +361,65 @@ export default function ModelosAltaPage() {
 
 // --- MODAL DE EDIÇÃO ---
 function ModeloEditor({ modelo, setModelo, onSave, onClose }: any) {
-  const set = (field: string, value: any) => setModelo((m: any) => ({ ...m, [field]: value }));
-  const setRec = (field: string, value: any) => setModelo((m: any) => ({ ...m, recomendacoes: { ...m.recomendacoes, [field]: value } }));
+  const set = (field: string, value: any) =>
+    setModelo((m: any) => ({ ...m, [field]: value }));
+  const setRec = (field: string, value: any) =>
+    setModelo((m: any) => ({
+      ...m,
+      recomendacoes: { ...m.recomendacoes, [field]: value },
+    }));
 
   const rec = modelo.recomendacoes || {};
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
-      <div className="bg-white rounded-2xl max-w-3xl w-full my-8 max-h-[90vh] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl max-w-3xl w-full my-8 max-h-[90vh] flex flex-col shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between rounded-t-2xl shrink-0">
-          <h2 className="text-lg font-bold text-slate-800">{modelo.id ? "Editar modelo" : "Novo modelo de alta"}</h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100"><X className="w-5 h-5 text-slate-400" /></button>
+          <h2 className="text-lg font-bold text-slate-800">
+            {modelo.id ? "Editar modelo" : "Novo modelo de alta"}
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-slate-100"
+          >
+            <X className="w-5 h-5 text-slate-400" />
+          </button>
         </div>
 
         <div className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* Dados básicos */}
           <div className="grid sm:grid-cols-2 gap-4">
             <Field label="Nome da cirurgia *">
-              <input className={inputCls} value={modelo.nomeCirurgia} onChange={(e) => set("nomeCirurgia", e.target.value)} placeholder="Ex: Artroscopia de Joelho" />
+              <input
+                className={inputCls}
+                value={modelo.nomeCirurgia}
+                onChange={(e) => set("nomeCirurgia", e.target.value)}
+                placeholder="Ex: Artroscopia de Joelho"
+              />
             </Field>
-            
+
             <Field label="Cirurgião *">
-              <Select value={modelo.cirurgiao} onValueChange={(val) => {
+              <Select
+                value={modelo.cirurgiao}
+                onValueChange={(val) => {
                   set("cirurgiao", val);
                   set("especialidade", getEspecialidadePorCirurgiao(val));
-              }}>
-                <SelectTrigger className={inputCls}><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                }}
+              >
+                <SelectTrigger className={inputCls}>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
                 <SelectContent>
                   {TODOS_CIRURGIOES.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -324,32 +429,77 @@ function ModeloEditor({ modelo, setModelo, onSave, onClose }: any) {
           {/* Recomendações (Booleans e pequenos textos) */}
           <Section title="Recomendações e Cuidados">
             <div className="space-y-4">
-              <Toggle label="Paciente pode pisar?" value={rec.pode_pisar} onChange={(v) => setRec("pode_pisar", v)} />
+              <Toggle
+                label="Paciente pode pisar?"
+                value={rec.pode_pisar}
+                onChange={(v) => setRec("pode_pisar", v)}
+              />
               {rec.pode_pisar && (
                 <Field label="Tipo de carga permitida">
-                  <Select value={rec.carga_tipo || "total"} onValueChange={(v) => setRec("carga_tipo", v)}>
-                    <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
+                  <Select
+                    value={rec.carga_tipo || "total"}
+                    onValueChange={(v) => setRec("carga_tipo", v)}
+                  >
+                    <SelectTrigger className={inputCls}>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="total">Carga total</SelectItem>
-                      <SelectItem value="parcial_andador">Parcial com andador</SelectItem>
-                      <SelectItem value="parcial_muletas">Parcial com muletas</SelectItem>
+                      <SelectItem value="parcial_andador">
+                        Parcial com andador
+                      </SelectItem>
+                      <SelectItem value="parcial_muletas">
+                        Parcial com muletas
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </Field>
               )}
-              
+
               <div className="grid grid-cols-2 gap-2 mt-2">
-                <Toggle label="Pode dobrar o joelho?" value={rec.pode_dobrar_joelho} onChange={(v) => setRec("pode_dobrar_joelho", v)} />
-                <Toggle label="Pode sentar?" value={rec.pode_sentar} onChange={(v) => setRec("pode_sentar", v)} />
-                <Toggle label="Pode trocar curativo em casa?" value={rec.pode_trocar_curativo} onChange={(v) => setRec("pode_trocar_curativo", v)} />
-                <Toggle label="Retirar suturas no posto?" value={rec.pode_retirar_suturas} onChange={(v) => setRec("pode_retirar_suturas", v)} />
-                <Toggle label="Pode deitar de lado?" value={rec.pode_deitar_lado} onChange={(v) => setRec("pode_deitar_lado", v)} />
-                <Toggle label="Iniciar fisioterapia?" value={rec.pode_fisioterapia} onChange={(v) => setRec("pode_fisioterapia", v)} />
+                <Toggle
+                  label="Pode dobrar o joelho?"
+                  value={rec.pode_dobrar_joelho}
+                  onChange={(v) => setRec("pode_dobrar_joelho", v)}
+                />
+                <Toggle
+                  label="Pode sentar?"
+                  value={rec.pode_sentar}
+                  onChange={(v) => setRec("pode_sentar", v)}
+                />
+                <Toggle
+                  label="Pode trocar curativo em casa?"
+                  value={rec.pode_trocar_curativo}
+                  onChange={(v) => setRec("pode_trocar_curativo", v)}
+                />
+                <Toggle
+                  label="Retirar suturas no posto?"
+                  value={rec.pode_retirar_suturas}
+                  onChange={(v) => setRec("pode_retirar_suturas", v)}
+                />
+                <Toggle
+                  label="Pode deitar de lado?"
+                  value={rec.pode_deitar_lado}
+                  onChange={(v) => setRec("pode_deitar_lado", v)}
+                />
+                <Toggle
+                  label="Iniciar fisioterapia?"
+                  value={rec.pode_fisioterapia}
+                  onChange={(v) => setRec("pode_fisioterapia", v)}
+                />
               </div>
 
               {rec.pode_fisioterapia && (
                 <Field label="Recomendações para a Fisioterapia">
-                  <textarea className={textareaCls} rows={2} value={rec.fisioterapia_recomendacoes} onChange={(e) => setRec("fisioterapia_recomendacoes", e.target.value)} placeholder="Protocolos específicos..." />
+                  <textarea
+                    className={textareaCls}
+                    rows={2}
+                    value={rec.fisioterapia_recomendacoes}
+                    onChange={(e) =>
+                      setRec("fisioterapia_recomendacoes", e.target.value)
+                    }
+                    placeholder="Protocolos específicos..."
+                  />
                 </Field>
               )}
             </div>
@@ -358,10 +508,20 @@ function ModeloEditor({ modelo, setModelo, onSave, onClose }: any) {
           {/* Textos Livres */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Section title="Como trocar o curativo">
-              <textarea className={textareaCls} rows={4} value={modelo.comoTrocarCurativo} onChange={(e) => set("comoTrocarCurativo", e.target.value)} />
+              <textarea
+                className={textareaCls}
+                rows={4}
+                value={modelo.comoTrocarCurativo}
+                onChange={(e) => set("comoTrocarCurativo", e.target.value)}
+              />
             </Section>
             <Section title="Sinais de Alarme (Ir ao PS)">
-              <textarea className={textareaCls} rows={4} value={modelo.sinaisAlarme} onChange={(e) => set("sinaisAlarme", e.target.value)} />
+              <textarea
+                className={textareaCls}
+                rows={4}
+                value={modelo.sinaisAlarme}
+                onChange={(e) => set("sinaisAlarme", e.target.value)}
+              />
             </Section>
           </div>
 
@@ -369,14 +529,27 @@ function ModeloEditor({ modelo, setModelo, onSave, onClose }: any) {
           <Section title="Retorno Ambulatorial">
             <div className="grid sm:grid-cols-4 gap-4">
               <Field label="Dias">
-                <input type="number" className={inputCls} value={modelo.retornoDias} onChange={(e) => set("retornoDias", Number(e.target.value))} />
+                <input
+                  type="number"
+                  className={inputCls}
+                  value={modelo.retornoDias}
+                  onChange={(e) => set("retornoDias", Number(e.target.value))}
+                />
               </Field>
               <Field label="Telefone">
-                <input className={inputCls} value={modelo.retornoTelefone} onChange={(e) => set("retornoTelefone", e.target.value)} />
+                <input
+                  className={inputCls}
+                  value={modelo.retornoTelefone}
+                  onChange={(e) => set("retornoTelefone", e.target.value)}
+                />
               </Field>
               <div className="sm:col-span-2">
                 <Field label="Local / Endereço">
-                  <input className={inputCls} value={modelo.retornoEndereco} onChange={(e) => set("retornoEndereco", e.target.value)} />
+                  <input
+                    className={inputCls}
+                    value={modelo.retornoEndereco}
+                    onChange={(e) => set("retornoEndereco", e.target.value)}
+                  />
                 </Field>
               </div>
             </div>
@@ -385,20 +558,34 @@ function ModeloEditor({ modelo, setModelo, onSave, onClose }: any) {
           {/* Prescrição Médica */}
           <Section title="Prescrição Médica">
             <div className="mb-4">
-              <label className="block text-xs font-medium text-slate-500 mb-2">Checklist Rápido (Medicações Frequentes):</label>
+              <label className="block text-xs font-medium text-slate-500 mb-2">
+                Checklist Rápido (Medicações Frequentes):
+              </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-white rounded-lg border border-slate-200">
                 {MEDICAMENTOS_ALTA.map((med) => {
                   const medicamentos = modelo.medicamentosSelecionados || [];
                   const ativo = medicamentos.includes(med);
                   return (
                     <button
-                      key={med} type="button"
-                      onClick={() => set("medicamentosSelecionados", ativo ? medicamentos.filter((m: string) => m !== med) : [...medicamentos, med])}
+                      key={med}
+                      type="button"
+                      onClick={() =>
+                        set(
+                          "medicamentosSelecionados",
+                          ativo
+                            ? medicamentos.filter((m: string) => m !== med)
+                            : [...medicamentos, med],
+                        )
+                      }
                       className={`text-left text-[11px] p-2 rounded-md border flex gap-2 items-start transition-colors ${
-                        ativo ? "bg-blue-50 border-blue-300 text-blue-800" : "bg-slate-50 border-transparent hover:bg-slate-100 text-slate-600"
+                        ativo
+                          ? "bg-blue-50 border-blue-300 text-blue-800"
+                          : "bg-slate-50 border-transparent hover:bg-slate-100 text-slate-600"
                       }`}
                     >
-                       <div className={`w-3.5 h-3.5 mt-0.5 rounded-sm border flex items-center justify-center shrink-0 ${ativo ? "bg-blue-500 border-blue-500" : "bg-white border-slate-300"}`}>
+                      <div
+                        className={`w-3.5 h-3.5 mt-0.5 rounded-sm border flex items-center justify-center shrink-0 ${ativo ? "bg-blue-500 border-blue-500" : "bg-white border-slate-300"}`}
+                      >
                         {ativo && <Check className="w-2.5 h-2.5 text-white" />}
                       </div>
                       <span className="leading-tight">{med}</span>
@@ -407,9 +594,14 @@ function ModeloEditor({ modelo, setModelo, onSave, onClose }: any) {
                 })}
               </div>
             </div>
-            
+
             <Field label="Prescrição Completa (Texto Livre que sairá no PDF)">
-              <textarea className={textareaCls} rows={6} value={modelo.prescricaoTexto} onChange={(e) => set("prescricaoTexto", e.target.value)} />
+              <textarea
+                className={textareaCls}
+                rows={6}
+                value={modelo.prescricaoTexto}
+                onChange={(e) => set("prescricaoTexto", e.target.value)}
+              />
             </Field>
           </Section>
 
@@ -417,22 +609,40 @@ function ModeloEditor({ modelo, setModelo, onSave, onClose }: any) {
           <Section title="Órtese Pós-operatória">
             <div className="grid sm:grid-cols-2 gap-4 mb-3">
               <Field label="Tipo de Órtese">
-                <Select value={modelo.orteseTipo || "Nenhuma"} onValueChange={(val) => set("orteseTipo", val)}>
-                  <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
+                <Select
+                  value={modelo.orteseTipo || "Nenhuma"}
+                  onValueChange={(val) => set("orteseTipo", val)}
+                >
+                  <SelectTrigger className={inputCls}>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
-                    {ORTESE_OPCOES.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    {ORTESE_OPCOES.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </Field>
               {modelo.orteseTipo === "Outra" && (
                 <Field label="Qual?">
-                  <input className={inputCls} value={rec.ortese_outra || ""} onChange={(e) => setRec("ortese_outra", e.target.value)} />
+                  <input
+                    className={inputCls}
+                    value={rec.ortese_outra || ""}
+                    onChange={(e) => setRec("ortese_outra", e.target.value)}
+                  />
                 </Field>
               )}
             </div>
             {modelo.orteseTipo !== "Nenhuma" && (
               <Field label="Como usar (Instruções)">
-                <textarea className={textareaCls} rows={2} value={modelo.orteseInstrucoes || ""} onChange={(e) => set("orteseInstrucoes", e.target.value)} />
+                <textarea
+                  className={textareaCls}
+                  rows={2}
+                  value={modelo.orteseInstrucoes || ""}
+                  onChange={(e) => set("orteseInstrucoes", e.target.value)}
+                />
               </Field>
             )}
           </Section>
@@ -440,17 +650,36 @@ function ModeloEditor({ modelo, setModelo, onSave, onClose }: any) {
           {/* Documentos Legais */}
           <div className="grid md:grid-cols-2 gap-4">
             <Section title="Molde do Laudo Médico">
-              <textarea className={textareaCls} rows={6} value={modelo.laudoTexto} onChange={(e) => set("laudoTexto", e.target.value)} />
+              <textarea
+                className={textareaCls}
+                rows={6}
+                value={modelo.laudoTexto}
+                onChange={(e) => set("laudoTexto", e.target.value)}
+              />
             </Section>
             <Section title="Molde do Atestado Médico">
-              <textarea className={textareaCls} rows={6} value={modelo.atestadoTexto} onChange={(e) => set("atestadoTexto", e.target.value)} />
+              <textarea
+                className={textareaCls}
+                rows={6}
+                value={modelo.atestadoTexto}
+                onChange={(e) => set("atestadoTexto", e.target.value)}
+              />
             </Section>
           </div>
         </div>
 
         <div className="bg-slate-50 border-t border-slate-100 px-6 py-4 flex justify-end gap-3 rounded-b-2xl shrink-0">
-          <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200">Cancelar</button>
-          <button onClick={onSave} disabled={!modelo.nomeCirurgia || !modelo.cirurgiao} className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-50">
+          <button
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onSave}
+            disabled={!modelo.nomeCirurgia || !modelo.cirurgiao}
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-50"
+          >
             <Save className="w-4 h-4" /> Salvar Modelo
           </button>
         </div>
@@ -472,7 +701,8 @@ function gerarDocumentoAlta(m: any) {
   doc += `- Pode retirar suturas com 15d no posto: ${rec.pode_retirar_suturas ? "Sim" : "Não (remover no retorno com cirurgião)"}\n`;
   doc += `- Pode deitar de lado: ${rec.pode_deitar_lado ? "Sim" : "Não"}\n`;
   doc += `- Pode fazer fisioterapia: ${rec.pode_fisioterapia ? "Sim" : "Não"}\n`;
-  if (rec.fisioterapia_recomendacoes) doc += `  Fisioterapia: ${rec.fisioterapia_recomendacoes}\n`;
+  if (rec.fisioterapia_recomendacoes)
+    doc += `  Fisioterapia: ${rec.fisioterapia_recomendacoes}\n`;
   if (m.orteseTipo && m.orteseTipo !== "Nenhuma") {
     doc += `- Órtese: ${m.orteseTipo}${rec.ortese_outra ? ` (${rec.ortese_outra})` : ""}\n`;
     if (m.orteseInstrucoes) doc += `  Instruções: ${m.orteseInstrucoes}\n`;
@@ -485,14 +715,28 @@ function gerarDocumentoAlta(m: any) {
 }
 
 function cargaLabel(c: string) {
-  return { total: "Carga total", parcial_andador: "Parcial com andador", parcial_muletas: "Parcial com muletas", nenhuma: "Sem carga" }[c] || "";
+  return (
+    {
+      total: "Carga total",
+      parcial_andador: "Parcial com andador",
+      parcial_muletas: "Parcial com muletas",
+      nenhuma: "Sem carga",
+    }[c] || ""
+  );
 }
 
 // Estilos padronizados
-const inputCls = "w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all bg-white";
+const inputCls =
+  "w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all bg-white";
 const textareaCls = inputCls + " resize-none font-mono text-xs";
 
-function Section({ title, children }: { title: string, children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="p-4 rounded-xl bg-slate-50/50 border border-slate-100">
       <h3 className="text-sm font-bold text-slate-700 mb-3">{title}</h3>
@@ -501,31 +745,49 @@ function Section({ title, children }: { title: string, children: React.ReactNode
   );
 }
 
-function Field({ label, children }: { label: string, children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">{label}</label>
+      <label className="block text-[13px] font-semibold text-slate-600 mb-1.5">
+        {label}
+      </label>
       {children}
     </div>
   );
 }
 
-function Toggle({ label, value, onChange }: { label: string, value: boolean, onChange: (v: boolean) => void }) {
+function Toggle({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
   return (
     <label className="flex items-center gap-3 cursor-pointer group">
       {/* O input nativo fica aqui, mas invisível */}
-      <input 
-        type="checkbox" 
+      <input
+        type="checkbox"
         checked={!!value} // o !! garante que não seja undefined
-        onChange={(e) => onChange(e.target.checked)} 
-        className="sr-only" 
+        onChange={(e) => onChange(e.target.checked)}
+        className="sr-only"
       />
-      
+
       {/* A nossa caixinha visual customizada */}
-      <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${value ? "bg-red-500 border-red-500" : "bg-white border-slate-300 group-hover:border-slate-400"}`}>
+      <div
+        className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${value ? "bg-blue-500 border-blue-500" : "bg-white border-slate-300 group-hover:border-slate-400"}`}
+      >
         {value && <Check className="w-3.5 h-3.5 text-white" />}
       </div>
-      
+
       <span className="text-sm text-slate-700 select-none">{label}</span>
     </label>
   );

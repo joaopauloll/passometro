@@ -1311,17 +1311,22 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
    * ======================================================================== */
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-5">
+    <form
+      onSubmit={handleSubmit}
+      className="mx-auto w-full max-w-5xl space-y-3"
+    >
       {/* ================================================================
           1. DADOS DO PACIENTE
       ================================================================ */}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Dados do Paciente</CardTitle>
+      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+          <CardTitle className="text-sm font-semibold text-slate-800">
+            Dados do Paciente
+          </CardTitle>
         </CardHeader>
 
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+        <CardContent className="px-5 py-4 grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="nome">Nome completo *</Label>
 
@@ -1435,12 +1440,14 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
           2. DIAGNÓSTICO
       ================================================================ */}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Diagnóstico</CardTitle>
+      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+          <CardTitle className="text-sm font-semibold text-slate-800">
+            Diagnóstico
+          </CardTitle>
         </CardHeader>
 
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+        <CardContent className="px-5 py-4 grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
             <Label>Diagnóstico *</Label>
 
@@ -1557,12 +1564,14 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
       ================================================================ */}
 
       {form.tipoStatus === "POS_OPERATORIO" && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Cirurgias realizadas</CardTitle>
+        <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+            <CardTitle className="text-sm font-semibold text-slate-800">
+              Cirurgias realizadas
+            </CardTitle>
           </CardHeader>
 
-          <CardContent className="space-y-4">
+          <CardContent className="px-5 py-4 space-y-4">
             {form.cirurgias.map((cirurgia, idx) => (
               <div
                 key={idx}
@@ -1597,12 +1606,19 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label>Cirurgião</Label>
+                    <Label>Cirurgião(s)</Label>
 
-                    <Input
-                      value={cirurgia.cirurgiao}
-                      onChange={(e) =>
-                        atualizarCirurgia(idx, "cirurgiao", e.target.value)
+                    <CirurgiaoMultiSelect
+                      value={
+                        cirurgia.cirurgiao
+                          ? cirurgia.cirurgiao
+                              .split(",")
+                              .map((nome) => nome.trim())
+                              .filter(Boolean)
+                          : []
+                      }
+                      onChange={(value) =>
+                        atualizarCirurgia(idx, "cirurgiao", value.join(", "))
                       }
                     />
                   </div>
@@ -1720,12 +1736,14 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
           4. SUBESPECIALIDADE / COMORBIDADES
       ================================================================ */}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Comorbidades</CardTitle>
+      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+          <CardTitle className="text-sm font-semibold text-slate-800">
+            Comorbidades
+          </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="px-5 py-4 space-y-4">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {COMORBIDADES_OPCOES.map(({ key, label }) => (
               <label
@@ -1775,12 +1793,14 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
           5. FUNÇÃO RENAL
       ================================================================ */}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Função renal</CardTitle>
+      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+          <CardTitle className="text-sm font-semibold text-slate-800">
+            Função renal
+          </CardTitle>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="px-5 py-4">
           <Select
             value={form.comorbidadesJson.funcaoRenal || "normal"}
             onValueChange={(value) =>
@@ -1803,14 +1823,14 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
           6. CIRURGIAS PRÉVIAS
       ================================================================ */}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">
+      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+          <CardTitle className="text-sm font-semibold text-slate-800">
             Cirurgias ortopédicas prévias
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="px-5 py-4 space-y-4">
           <label className="flex cursor-pointer items-center gap-2">
             <Checkbox
               checked={form.prevCirurgiasOrto}
@@ -1877,15 +1897,22 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label>Cirurgião</Label>
+                      <Label>Cirurgião(s)</Label>
 
-                      <Input
-                        value={cirurgia.cirurgiao}
-                        onChange={(e) =>
+                      <CirurgiaoMultiSelect
+                        value={
+                          cirurgia.cirurgiao
+                            ? cirurgia.cirurgiao
+                                .split(",")
+                                .map((nome) => nome.trim())
+                                .filter(Boolean)
+                            : []
+                        }
+                        onChange={(value) =>
                           atualizarCirurgiaPrevia(
                             idx,
                             "cirurgiao",
-                            e.target.value,
+                            value.join(", "),
                           )
                         }
                       />
@@ -1927,14 +1954,14 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
           7. MEDICAMENTOS
       ================================================================ */}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">
+      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+          <CardTitle className="text-sm font-semibold text-slate-800">
             Medicamentos de uso contínuo
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="px-5 py-4 space-y-4">
           <div className="flex gap-4">
             {(["sim", "nao"] as const).map((valor) => (
               <label
@@ -2108,12 +2135,14 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
           8. ALERGIAS
       ================================================================ */}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Alergias a medicamentos</CardTitle>
+      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+          <CardTitle className="text-sm font-semibold text-slate-800">
+            Alergias a medicamentos
+          </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-3">
+        <CardContent className="px-5 py-4 space-y-3">
           <label className="flex cursor-pointer items-center gap-2">
             <Checkbox
               checked={form.temAlergia}
@@ -2192,14 +2221,14 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
           9. LABORATÓRIO
       ================================================================ */}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">
+      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+          <CardTitle className="text-sm font-semibold text-slate-800">
             Exames laboratoriais — Admissão
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="grid gap-4 sm:grid-cols-3">
+        <CardContent className="px-5 py-4 grid gap-4 sm:grid-cols-3">
           <div className="space-y-1.5">
             <Label>Hemoglobina (g/dL)</Label>
 
@@ -2278,12 +2307,14 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
       10. INFECÇÃO
       ================================================================ */}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Infecção ortopédica</CardTitle>
+      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+          <CardTitle className="text-sm font-semibold text-slate-800">
+            Infecção ortopédica
+          </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="px-5 py-4 space-y-4">
           <label className="flex cursor-pointer items-center gap-2">
             <Checkbox
               checked={form.temInfeccao}
@@ -2459,12 +2490,14 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
           11. CULTURAS
       ================================================================ */}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Culturas</CardTitle>
+      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+          <CardTitle className="text-sm font-semibold text-slate-800">
+            Culturas
+          </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-3">
+        <CardContent className="px-5 py-4 space-y-3">
           {form.culturas.map((cultura, idx) => (
             <div key={idx} className="rounded-lg border border-slate-200 p-3">
               <div className="mb-3 flex items-center justify-between">
@@ -2549,14 +2582,14 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
           12. PARECERES
       ================================================================ */}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">
+      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+          <CardTitle className="text-sm font-semibold text-slate-800">
             Pareceres de especialidades
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-3">
+        <CardContent className="px-5 py-4 space-y-3">
           {form.pareceres.map((parecer, idx) => (
             <div key={idx} className="rounded-lg border border-slate-200 p-3">
               <div className="mb-3 flex items-center justify-between">
@@ -2652,12 +2685,14 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
           13. EXAMES DE IMAGEM
       ================================================================ */}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Exames de imagem</CardTitle>
+      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+          <CardTitle className="text-sm font-semibold text-slate-800">
+            Exames de imagem
+          </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-3">
+        <CardContent className="px-5 py-4 space-y-3">
           {form.examesImagem.map((exame, idx) => (
             <div key={idx} className="rounded-lg border border-slate-200 p-3">
               <div className="mb-3 flex items-center justify-between">
@@ -2825,12 +2860,14 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
           14. TRAUMA
       ================================================================ */}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Trauma</CardTitle>
+      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+          <CardTitle className="text-sm font-semibold text-slate-800">
+            Trauma
+          </CardTitle>
         </CardHeader>
 
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+        <CardContent className="px-5 py-4 grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
             <Label>Mecanismo do trauma</Label>
 
@@ -2880,14 +2917,14 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
           15. PPS
       ================================================================ */}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">
+      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+          <CardTitle className="text-sm font-semibold text-slate-800">
             PPS — Escala de Performance Paliativa
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-3">
+        <CardContent className="px-5 py-4 space-y-3">
           <p className="text-xs text-slate-500">
             Avalia o estado funcional do paciente.
           </p>
@@ -2927,12 +2964,14 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
       ================================================================ */}
 
       {form.tipoStatus === "POS_OPERATORIO" && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Alta e follow-up</CardTitle>
+        <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+            <CardTitle className="text-sm font-semibold text-slate-800">
+              Alta e follow-up
+            </CardTitle>
           </CardHeader>
 
-          <CardContent className="grid gap-4 sm:grid-cols-2">
+          <CardContent className="px-5 py-4 grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Alta da Ortopedia</Label>
 
@@ -3000,14 +3039,14 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
           17. CLÍNICA MÉDICA
       ================================================================ */}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">
+      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+          <CardTitle className="text-sm font-semibold text-slate-800">
             Acompanhamento pela Clínica Médica
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="px-5 py-4 space-y-4">
           <label className="flex cursor-pointer items-center gap-2">
             <Checkbox
               checked={form.aguardaClinica}
@@ -3069,14 +3108,14 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
       18. RISCO CIRÚRGICO
       ================================================================ */}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">
+      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+          <CardTitle className="text-sm font-semibold text-slate-800">
             Risco Cirúrgico — Cardiologia
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="px-5 py-4 space-y-4">
           {/* Risco concluído? */}
           <div className="flex gap-4">
             <label className="flex cursor-pointer items-center gap-2">
@@ -3322,7 +3361,7 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
           AÇÕES
       ================================================================ */}
 
-      <div className="flex justify-end gap-3 pb-6">
+      <div className="flex justify-end gap-3 border-t border-slate-100 pt-4 pb-6">
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancelar
         </Button>
