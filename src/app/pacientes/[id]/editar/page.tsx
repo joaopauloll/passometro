@@ -1,41 +1,80 @@
-import { prisma } from '@/lib/prisma'
-import { getSessionFromCookies } from '@/lib/auth'
-import { notFound, redirect } from 'next/navigation'
-import Link from 'next/link'
-import PacienteForm from '@/components/pacientes/PacienteForm'
+import { prisma } from "@/lib/prisma";
+import { getSessionFromCookies } from "@/lib/auth";
+import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
+import PacienteForm from "@/components/pacientes/PacienteForm";
+import { MEDICAMENTOS_COMUNS } from "@/lib/medicamentos";
 
-type Params = { params: Promise<{ id: string }> }
+type Params = { params: Promise<{ id: string }> };
 
 export default async function EditarPacientePage({ params }: Params) {
-  const session = await getSessionFromCookies()
-  if (!session) redirect('/login')
+  const session = await getSessionFromCookies();
+  if (!session) redirect("/login");
 
-  const { id } = await params
+  const { id } = await params;
 
   const paciente = await prisma.paciente.findUnique({
     where: { id },
-    include: { cirurgias: true, fotos: { orderBy: { createdAt: 'asc' } } },
-  })
+    include: {
+      cirurgias: true,
+      fotos: { orderBy: { createdAt: "asc" } },
+      pareceres: {
+        orderBy: { data: "desc" },
+      },
+      culturas: {
+        orderBy: { dataColeta: "desc" },
+      },
+      examesImagem: {
+        orderBy: { dataRealizacao: "desc" },
+      },
+    },
+  });
 
-  if (!paciente) notFound()
+  if (!paciente) notFound();
 
   const cirurgioes: string[] = (() => {
-    try { return JSON.parse(paciente.cirurgioes) } catch { return [''] }
-  })()
+    try {
+      return JSON.parse(paciente.cirurgioes);
+    } catch {
+      return [""];
+    }
+  })();
+
+  const medicamentosSalvos = paciente.medicacoes
+    ? paciente.medicacoes
+        .split(",")
+        .map((med) => med.trim())
+        .filter(Boolean)
+    : [];
+
+  const medicamentosComuns = medicamentosSalvos.filter((med) =>
+    MEDICAMENTOS_COMUNS.includes(med),
+  );
+
+  const medicamentosOutros = medicamentosSalvos
+    .filter((med) => !MEDICAMENTOS_COMUNS.includes(med))
+    .join(", ");
 
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-6">
-        <Link href={`/pacientes/${id}`} className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
+        <Link
+          href={`/pacientes/${id}`}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
+        >
           ← {paciente.nome}
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900 mt-2">Editar Paciente</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mt-2">
+          Editar Paciente
+        </h1>
       </div>
 
       <PacienteForm
         modo="editar"
-        fotosSalvas={paciente.fotos.map(f => ({
-          id: f.id, tipo: f.tipo, url: f.url,
+        fotosSalvas={paciente.fotos.map((f) => ({
+          id: f.id,
+          tipo: f.tipo,
+          url: f.url,
           dataFoto: f.dataFoto?.toISOString() ?? null,
           descricao: f.descricao,
         }))}
@@ -44,50 +83,108 @@ export default async function EditarPacientePage({ params }: Params) {
           nome: paciente.nome,
           leito: paciente.leito,
           registroHospitalar: paciente.registroHospitalar,
-          cpf: paciente.cpf || '',
+          cpf: paciente.cpf || "",
           dataInternacao: paciente.dataInternacao.toISOString(),
-          dataNascimento: paciente.dataNascimento?.toISOString() || '',
+          dataNascimento: paciente.dataNascimento?.toISOString() || "",
           diagnostico: paciente.diagnostico,
-          cid: paciente.cid || '',
-          subespecialidade: paciente.subespecialidade || '',
+          cid: paciente.cid || "",
+          subespecialidade: paciente.subespecialidade || "",
           cirurgioes,
           tipoStatus: paciente.tipoStatus,
-          comorbidades: paciente.comorbidades || '',
+
+          comorbidades: paciente.comorbidades || "",
           comorbidadesJson: paciente.comorbidadesJson ?? undefined,
+
           prevCirurgiasOrto: paciente.prevCirurgiasOrto,
           prevCirurgiasJson: paciente.prevCirurgiasJson ?? undefined,
-          medicacoes: paciente.medicacoes || '',
+
+          medicacoes: paciente.medicacoes || "",
           medicamentosJson: paciente.medicamentosJson ?? undefined,
+
+          // NOVO
+          medicamentosComuns,
+          medicamentosOutros,
+
           temAlergia: paciente.temAlergia,
-          alergias: paciente.alergias || '',
-          hemoglobinaAdm: paciente.hemoglobinaAdm != null ? String(paciente.hemoglobinaAdm) : undefined,
-          plaquetasAdm: paciente.plaquetasAdm != null ? String(paciente.plaquetasAdm) : undefined,
+          alergias: paciente.alergias || "",
+
+          hemoglobinaAdm:
+            paciente.hemoglobinaAdm != null
+              ? String(paciente.hemoglobinaAdm)
+              : undefined,
+
+          plaquetasAdm:
+            paciente.plaquetasAdm != null
+              ? String(paciente.plaquetasAdm)
+              : undefined,
+
           inrAdm: paciente.inrAdm != null ? String(paciente.inrAdm) : undefined,
+
           pps: paciente.pps != null ? String(paciente.pps) : undefined,
+
           temInfeccao: paciente.temInfeccao,
           infeccaoJson: paciente.infeccaoJson ?? undefined,
-          altaOrtopediaData: paciente.altaOrtopediaData?.toISOString() ?? '',
-          altaHospitalarData: paciente.altaHospitalarData?.toISOString() ?? '',
-          previsaoAltaOrto: paciente.previsaoAltaOrto ?? '',
-          clinicaMedico: paciente.clinicaMedico ?? '',
+
+          altaOrtopediaData: paciente.altaOrtopediaData?.toISOString() ?? "",
+
+          altaHospitalarData: paciente.altaHospitalarData?.toISOString() ?? "",
+
+          previsaoAltaOrto: paciente.previsaoAltaOrto ?? "",
+          clinicaMedico: paciente.clinicaMedico ?? "",
           aguardaClinica: paciente.aguardaClinica,
+
           riscoJson: paciente.riscoJson ?? undefined,
+
           compSolturaAssetica: paciente.compSolturaAssetica,
           compLuxacao: paciente.compLuxacao,
           compFalhaImplante: paciente.compFalhaImplante,
           compPseudoartrose: paciente.compPseudoartrose,
-          compOutro: paciente.compOutro || '',
-          traumaMecanismo: paciente.traumaMecanismo || '',
-          traumaData: paciente.traumaData?.toISOString() || '',
-          traumaTempo: paciente.traumaTempo || '',
+          compOutro: paciente.compOutro || "",
+
+          traumaMecanismo: paciente.traumaMecanismo || "",
+          traumaData: paciente.traumaData?.toISOString() || "",
+          traumaTempo: paciente.traumaTempo || "",
+
           cirurgias: paciente.cirurgias.map((c) => ({
             nomeCirurgia: c.nomeCirurgia,
             cirurgiao: c.cirurgiao,
-            dataCirurgia: c.dataCirurgia.toISOString().split('T')[0],
-            hospitalExterno: c.hospitalExterno || '',
+            dataCirurgia: c.dataCirurgia.toISOString().split("T")[0],
+            hospitalExterno: c.hospitalExterno || "",
+          })),
+
+          pareceres: paciente.pareceres.map((p) => ({
+            id: p.id,
+            especialidade: p.especialidade,
+            data: p.data.toISOString().split("T")[0],
+            descricao: p.descricao,
+            medico: p.medico || "",
+          })),
+
+          culturas: paciente.culturas.map((c) => ({
+            id: c.id,
+            dataColeta: c.dataColeta.toISOString().split("T")[0],
+            sitio: c.sitio,
+            resultado: c.resultado || "",
+            dataResult: c.dataResult
+              ? c.dataResult.toISOString().split("T")[0]
+              : "",
+          })),
+
+          examesImagem: paciente.examesImagem.map((e) => ({
+            id: e.id,
+            tipo: e.tipo,
+            lateralidade: e.lateralidade || "",
+            descricao: e.descricao || "",
+            dataRealizacao: e.dataRealizacao
+              ? e.dataRealizacao.toISOString().split("T")[0]
+              : "",
+            sitio: e.sitio || "",
+            achados: e.achados || "",
+            linkTipo: e.linkTipo || "",
+            linkUrl: e.linkUrl || "",
           })),
         }}
       />
     </div>
-  )
+  );
 }

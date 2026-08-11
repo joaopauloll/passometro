@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSessionFromRequest } from '@/lib/auth'
 
-type Params = { params: Promise<{ pacienteId: string }> } // Ajustado de 'id' para 'pacienteId' para bater com a pasta
+// 1. O tipo DEVE bater com o nome da pasta dinâmica: [id]
+type Params = { params: Promise<{ id: string }> }
 
 const SISTEMAS_IMAGEM = {
     WBSRAD: { url: 'https://www.wbsrad.com.br/site/', login: 'hospitalmemorial@exame.com.br', senha: '123456' },
@@ -15,12 +16,11 @@ export async function GET(req: NextRequest, { params }: Params) {
     const session = await getSessionFromRequest(req)
     if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-    const { pacienteId } = await params
-    // Se seu ID no banco for Int, descomente a linha abaixo:
-    // const formattedId = isNaN(Number(pacienteId)) ? pacienteId : Number(pacienteId)
+    // 2. Extrai "id" diretamente
+    const { id } = await params
 
     const exames = await prisma.exameImagem.findMany({
-        where: { pacienteId: pacienteId }, // Use 'formattedId' se usar Int
+        where: { pacienteId: id }, // Usa o "id" recuperado
         orderBy: { createdAt: 'desc' },
     })
     return NextResponse.json(exames)
@@ -30,42 +30,116 @@ export async function POST(req: NextRequest, { params }: Params) {
     const session = await getSessionFromRequest(req)
     if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-    const { pacienteId } = await params
-    // Se seu ID no banco for Int, descomente a linha abaixo:
-    // const formattedId = isNaN(Number(pacienteId)) ? pacienteId : Number(pacienteId)
+    // 3. Extrai "id" diretamente
+    const { id } = await params
 
     const { tipo, descricao, dataRealizacao, sitio, achados, linkTipo, linkUrl, lateralidade } = await req.json()
 
-    const exame = await prisma.exameImagem.create({
-        data: {
-            pacienteId: pacienteId, // Use 'formattedId' se usar Int
-            tipo: tipo || 'OUTRO',
-            lateralidade: lateralidade || null,
-            descricao: descricao || null,
-            dataRealizacao: dataRealizacao ? new Date(dataRealizacao) : null,
-            sitio: sitio || null,
-            achados: achados || null,
-            linkTipo: linkTipo || null,
-            linkUrl: linkUrl || null,
+    try {
+        const exame = await prisma.exameImagem.create({
+            data: {
+                pacienteId: id, // 4. Vincula o pacienteId com a variável "id"
+                tipo: tipo || 'OUTRO',
+                lateralidade: lateralidade || null,
+                descricao: descricao || null,
+                dataRealizacao: dataRealizacao ? new Date(dataRealizacao) : null,
+                sitio: sitio || null,
+                achados: achados || null,
+                linkTipo: linkTipo || null,
+                linkUrl: linkUrl || null,
+            },
+        })
+        return NextResponse.json(exame, { status: 201 })
+    } catch (error) {
+        console.error('[ERRO SALVAR EXAME IMAGEM]', error)
+        return NextResponse.json({ error: 'Erro interno ao salvar exame de imagem.' }, { status: 500 })
+    }
+}
+
+export async function PUT(req: NextRequest, { params }: Params) {
+    const session = await getSessionFromRequest(req)
+    if (!session) {
+        return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
+    const { id } = await params
+    const body = await req.json()
+
+    const exameId = body.id
+
+    if (!exameId) {
+        return NextResponse.json(
+            { error: 'id do exame obrigatório' },
+            { status: 400 },
+        )
+    }
+
+    const existente = await prisma.exameImagem.findFirst({
+        where: {
+            id: exameId,
+            pacienteId: id,
         },
     })
-    return NextResponse.json(exame, { status: 201 })
+
+    if (!existente) {
+        return NextResponse.json(
+            { error: 'Exame de imagem não encontrado' },
+            { status: 404 },
+        )
+    }
+
+    const exame = await prisma.exameImagem.update({
+        where: { id: exameId },
+        data: {
+            tipo: body.tipo || 'OUTRO',
+            lateralidade: body.lateralidade || null,
+            descricao: body.descricao || null,
+            dataRealizacao: body.dataRealizacao
+                ? new Date(body.dataRealizacao)
+                : null,
+            sitio: body.sitio || null,
+            achados: body.achados || null,
+            linkTipo: body.linkTipo || null,
+            linkUrl: body.linkUrl || null,
+        },
+    })
+
+    return NextResponse.json(exame)
 }
 
 export async function DELETE(req: NextRequest, { params }: Params) {
     const session = await getSessionFromRequest(req)
-    if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    if (!session) {
+        return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
 
+    const { id } = await params
     const { searchParams } = req.nextUrl
     const exameId = searchParams.get('exameId')
 
-    if (!exameId) return NextResponse.json({ error: 'exameId obrigatório' }, { status: 400 })
+    if (!exameId) {
+        return NextResponse.json(
+            { error: 'exameId obrigatório' },
+            { status: 400 },
+        )
+    }
 
-    // Se o ID do exame no banco for Int, converta para número:
-    const formattedExameId = isNaN(Number(exameId)) ? exameId : Number(exameId)
+    const exame = await prisma.exameImagem.findFirst({
+        where: {
+            id: exameId,
+            pacienteId: id,
+        },
+    })
+
+    if (!exame) {
+        return NextResponse.json(
+            { error: 'Exame de imagem não encontrado' },
+            { status: 404 },
+        )
+    }
 
     await prisma.exameImagem.delete({
-        where: { id: formattedExameId as any }
+        where: { id: exameId },
     })
 
     return NextResponse.json({ ok: true })

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSessionFromRequest } from '@/lib/auth'
+import { sincronizarPendenciasRisco } from '@/lib/sincronizar-pendencias'
 
 // GET /api/pacientes — lista todos os pacientes (com filtros opcionais)
 export async function GET(req: NextRequest) {
@@ -119,6 +120,17 @@ export async function POST(req: NextRequest) {
                 clinicaMedico: pacienteData.clinicaMedico || null,
                 aguardaClinica: Boolean(pacienteData.aguardaClinica),
                 riscoJson: pacienteData.riscoJson || null,
+                ecocardiogramaData: pacienteData.ecocardiogramaData
+                    ? new Date(pacienteData.ecocardiogramaData)
+                    : null,
+
+                ecocardiogramaResultado: pacienteData.ecocardiogramaResultado || null,
+
+                ecgData: pacienteData.ecgData
+                    ? new Date(pacienteData.ecgData)
+                    : null,
+
+                ecgResultado: pacienteData.ecgResultado || null,
                 ...(cirurgiasData?.length && {
                     cirurgias: {
                         create: cirurgiasData.map((c: {
@@ -137,6 +149,8 @@ export async function POST(req: NextRequest) {
             },
             include: { cirurgias: true },
         })
+
+        await sincronizarPendenciasRisco(paciente)
 
         return NextResponse.json(paciente, { status: 201 })
     } catch (err) {

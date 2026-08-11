@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSessionFromRequest } from '@/lib/auth'
+import { sincronizarPendenciasRisco } from '@/lib/sincronizar-pendencias'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -82,6 +83,17 @@ export async function PUT(req: NextRequest, { params }: Params) {
                 clinicaMedico: pacienteData.clinicaMedico || null,
                 aguardaClinica: Boolean(pacienteData.aguardaClinica),
                 riscoJson: pacienteData.riscoJson || null,
+                ecocardiogramaData: pacienteData.ecocardiogramaData
+                    ? new Date(pacienteData.ecocardiogramaData)
+                    : null,
+
+                ecocardiogramaResultado: pacienteData.ecocardiogramaResultado || null,
+
+                ecgData: pacienteData.ecgData
+                    ? new Date(pacienteData.ecgData)
+                    : null,
+
+                ecgResultado: pacienteData.ecgResultado || null,
             },
         })
 
@@ -105,6 +117,8 @@ export async function PUT(req: NextRequest, { params }: Params) {
                 })
             }
         }
+
+        await sincronizarPendenciasRisco(paciente)
 
         return NextResponse.json(paciente)
     } catch (err) {
