@@ -7,16 +7,14 @@ import {
   Trash2,
   Image as ImageIcon,
   ExternalLink,
-  Eye,
   X,
   Calendar,
   FileText,
   Activity,
 } from "lucide-react";
 
-import FotoUpload, { FotoSalva } from "@/components/FotoUpload";
+import FotoUpload, { FotoSalva, FotoTipo } from "@/components/FotoUpload";
 
-// --- Constantes adaptadas para o seu sistema ---
 const HOSPITAIS_EXAMES = [
   {
     id: "WBSRAD",
@@ -49,12 +47,21 @@ const inputCls =
   "w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 bg-white";
 const textareaCls = inputCls + " resize-none";
 
-// --- Tipagens ---
 type Props = {
   pacienteId: string;
   examesIniciais: any[];
   fotosIniciais: any[];
   evolucoes: any[];
+};
+
+const normalizarTipo = (tipo: string): FotoTipo | string => {
+  const valor = (tipo || "").toLowerCase();
+
+  if (valor.includes("radiografia") || valor === "rx") return "RADIOGRAFIA";
+  if (valor.includes("lesao")) return "LESAO_PELE";
+  if (valor.includes("curativo")) return "CURATIVO";
+
+  return tipo;
 };
 
 export default function ExamesImagemTab({
@@ -63,9 +70,13 @@ export default function ExamesImagemTab({
   fotosIniciais,
   evolucoes = [],
 }: Props) {
-  // --- Estados ---
   const [exames, setExames] = useState(examesIniciais || []);
-  const [fotos, setFotos] = useState<FotoSalva[]>(fotosIniciais || []);
+  const [fotos, setFotos] = useState<FotoSalva[]>(
+    (fotosIniciais || []).map((foto) => ({
+      ...foto,
+      tipo: normalizarTipo(foto.tipo),
+    })),
+  );
 
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -85,16 +96,14 @@ export default function ExamesImagemTab({
     hospital_origem: "WBSRAD",
   });
 
-  // --- Filtros e Lógicas de Visualização ---
-  const fotosRx = fotos.filter(
-    (f) => f.tipo === "radiografia" || f.tipo === "RADIOGRAFIA",
-  );
+  const fotosRx = fotos.filter((f) => normalizarTipo(f.tipo) === "RADIOGRAFIA");
   const fotosLesao = fotos.filter(
-    (f) => f.tipo === "lesao" || f.tipo === "LESAO_PELE",
+    (f) => normalizarTipo(f.tipo) === "LESAO_PELE",
   );
-  const fotosCurativo = fotos.filter((f) => f.tipo === "curativo");
+  const fotosCurativo = fotos.filter(
+    (f) => normalizarTipo(f.tipo) === "CURATIVO",
+  );
 
-  // Linha do Tempo Curativos (Mescla Fotos independentes com Fotos de Evoluções)
   const fotosCurativoUrls = new Set(fotosCurativo.map((f) => f.url));
   const timelineCurativos = [
     ...fotosCurativo.map((f) => ({
@@ -102,7 +111,7 @@ export default function ExamesImagemTab({
       data: f.dataFoto || (f as any).data_realizacao,
       descricao: f.descricao,
       id: f.id,
-      origem: "foto",
+      origem: "foto" as const,
     })),
     ...evolucoes
       .filter(
@@ -114,7 +123,7 @@ export default function ExamesImagemTab({
         data: e.data,
         descricao: "Curativo (evolução)",
         id: e.id,
-        origem: "evolucao",
+        origem: "evolucao" as const,
       })),
   ].sort((a, b) => (b.data || "").localeCompare(a.data || ""));
 
@@ -122,72 +131,97 @@ export default function ExamesImagemTab({
     EXAMES_ALTA_COMPLEXIDADE.includes(e.tipo_exame),
   );
 
-  // --- Funções de API ---
+  const substituirCategoria = (tipo: FotoTipo, novasFotos: FotoSalva[]) => {
+    setFotos((atuais) => [
+      ...atuais.filter((foto) => normalizarTipo(foto.tipo) !== tipo),
+      ...novasFotos.map((foto) => ({
+        ...foto,
+        tipo: normalizarTipo(foto.tipo),
+      })),
+    ]);
+  };
+
   const salvarExame = async () => {
     if (!novo.data || !novo.sitio) return;
     setSaving(true);
-    const res = await fetch(`/api/pacientes/${pacienteId}/exames-imagem`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(novo),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setExames([data, ...exames]);
-      setNovo({
-        data: new Date().toISOString().slice(0, 10),
-        tipo_exame: "tc",
-        lateralidade: "nao_aplicavel",
-        sitio: "",
-        achados: "",
-        laudo: "",
-        hospital_origem: "WBSRAD",
+
+    try {
+      const res = await fetch(`/api/pacientes/${pacienteId}/exames-imagem`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(novo),
       });
-      setShowForm(false);
+
+      if (res.ok) {
+        const data = await res.json();
+        setExames((atuais) => [data, ...atuais]);
+        setNovo({
+          data: new Date().toISOString().slice(0, 10),
+          tipo_exame: "tc",
+          lateralidade: "nao_aplicavel",
+          sitio: "",
+          achados: "",
+          laudo: "",
+          hospital_origem: "WBSRAD",
+        });
+        setShowForm(false);
+      }
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const removerExame = async (id: string) => {
     await fetch(`/api/pacientes/${pacienteId}/exames-imagem?exameId=${id}`, {
       method: "DELETE",
     });
-    setExames(exames.filter((e) => e.id !== id));
+    setExames((atuais) => atuais.filter((e) => e.id !== id));
   };
 
   const removerFoto = async (fotoId: string) => {
-    await fetch(`/api/pacientes/${pacienteId}/fotos?fotoId=${fotoId}`, {
-      method: "DELETE",
-    });
-    setFotos(fotos.filter((f) => f.id !== fotoId));
+    const response = await fetch(
+      `/api/pacientes/${pacienteId}/fotos?fotoId=${fotoId}`,
+      { method: "DELETE" },
+    );
+
+    if (!response.ok) return;
+
+    setFotos((atuais) => atuais.filter((f) => f.id !== fotoId));
   };
 
-  const atualizarFoto = async (fotoId: string, dados: any) => {
-    await fetch(`/api/pacientes/${pacienteId}/fotos`, {
+  const atualizarFoto = async (fotoId: string, dados: Partial<FotoSalva>) => {
+    const response = await fetch(`/api/pacientes/${pacienteId}/fotos`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ fotoId, ...dados }),
     });
-    setFotos(fotos.map((f) => (f.id === fotoId ? { ...f, ...dados } : f)));
+
+    if (!response.ok) return;
+
+    setFotos((atuais) =>
+      atuais.map((f) => (f.id === fotoId ? { ...f, ...dados } : f)),
+    );
   };
 
   const hospitalInfo = (id: string) =>
     HOSPITAIS_EXAMES.find((h) => h.id === id);
+
   const labelTipoExame = (val: string) =>
     TIPOS_EXAME.find((t) => t.value === val)?.label || val;
 
-  // --- Renderização ---
   return (
     <div className="space-y-6">
       {/* 1. Links dos Sistemas */}
       <div className="flex justify-end">
         <button
+          type="button"
           onClick={() => setShowLinks(!showLinks)}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 shadow-sm transition-all"
         >
           <ExternalLink className="w-4 h-4" /> Sistemas de Imagem
         </button>
       </div>
+
       {showLinks && (
         <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 shadow-sm">
           <p className="text-sm font-semibold text-slate-700">
@@ -228,16 +262,16 @@ export default function ExamesImagemTab({
         </div>
       )}
 
-      {/* 2. Radiografias (Fotos) */}
+      {/* 2. Radiografias */}
       <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-semibold text-slate-800 flex items-center gap-2">
             <ImageIcon className="w-5 h-5 text-slate-400" />
             Radiografias ({fotosRx.length})
           </h3>
-
           <button
-            onClick={() => setMostrarUploadRx(!mostrarUploadRx)}
+            type="button"
+            onClick={() => setMostrarUploadRx((v) => !v)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-sm font-medium hover:bg-blue-100 transition-colors"
           >
             {mostrarUploadRx ? (
@@ -245,51 +279,51 @@ export default function ExamesImagemTab({
             ) : (
               <Plus className="w-4 h-4" />
             )}
-
-            {mostrarUploadRx ? "Fechar Upload" : "Adicionar"}
+            {mostrarUploadRx ? "Fechar" : "Adicionar"}
           </button>
         </div>
 
         {mostrarUploadRx && (
-          <div className="mb-4">
+          <div className="mb-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
             <FotoUpload
               pacienteId={pacienteId}
               tipo="RADIOGRAFIA"
-              fotos={fotosRx}
+              fotos={fotosRx} /* ✨ ADICIONE ESTA LINHA */
+              mostrarGaleria={false}
+              mostrarFormulario={true}
               onChange={(novasFotos) => {
-                setFotos(novasFotos);
+                substituirCategoria("RADIOGRAFIA", novasFotos);
                 setMostrarUploadRx(false);
               }}
             />
           </div>
         )}
 
-        {!mostrarUploadRx && fotosRx.length === 0 && (
-          <p className="text-sm text-slate-400 py-2">
-            Nenhuma radiografia anexada.
-          </p>
-        )}
-
-        {!mostrarUploadRx && fotosRx.length > 0 && (
-          <div className="text-sm text-slate-500">
-            {fotosRx.length}{" "}
-            {fotosRx.length === 1
-              ? "radiografia anexada."
-              : "radiografias anexadas."}
-          </div>
-        )}
+        <FotoUpload
+          pacienteId={pacienteId}
+          tipo="RADIOGRAFIA"
+          fotos={fotosRx}
+          mostrarGaleria
+          mostrarFormulario={false}
+          onChange={(novasFotos) =>
+            substituirCategoria("RADIOGRAFIA", novasFotos)
+          }
+          onFotoDeletada={(id) =>
+            setFotos((atuais) => atuais.filter((foto) => foto.id !== id))
+          }
+        />
       </div>
 
-      {/* 3. Lesões de Pele (Fotos) */}
+      {/* 3. Lesões de Pele */}
       <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-semibold text-slate-800 flex items-center gap-2">
             <ImageIcon className="w-5 h-5 text-slate-400" />
             Lesões de pele ({fotosLesao.length})
           </h3>
-
           <button
-            onClick={() => setMostrarUploadLesao(!mostrarUploadLesao)}
+            type="button"
+            onClick={() => setMostrarUploadLesao((v) => !v)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-sm font-medium hover:bg-blue-100 transition-colors"
           >
             {mostrarUploadLesao ? (
@@ -297,40 +331,42 @@ export default function ExamesImagemTab({
             ) : (
               <Plus className="w-4 h-4" />
             )}
-
-            {mostrarUploadLesao ? "Fechar Upload" : "Adicionar"}
+            {mostrarUploadLesao ? "Fechar" : "Adicionar"}
           </button>
         </div>
 
         {mostrarUploadLesao && (
-          <div className="mb-4">
+          <div className="mb-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
             <FotoUpload
               pacienteId={pacienteId}
               tipo="LESAO_PELE"
-              fotos={fotosLesao}
+              fotos={fotosLesao} /* ✨ ADICIONE ESTA LINHA */
+              mostrarGaleria={false}
+              mostrarFormulario={true}
               onChange={(novasFotos) => {
-                setFotos(novasFotos);
+                substituirCategoria("LESAO_PELE", novasFotos);
                 setMostrarUploadLesao(false);
               }}
             />
           </div>
         )}
 
-        {!mostrarUploadLesao && fotosLesao.length === 0 && (
-          <p className="text-sm text-slate-400 py-2">
-            Nenhuma foto de lesão anexada.
-          </p>
-        )}
-
-        {!mostrarUploadLesao && fotosLesao.length > 0 && (
-          <div className="text-sm text-slate-500">
-            {fotosLesao.length}{" "}
-            {fotosLesao.length === 1 ? "foto anexada." : "fotos anexadas."}
-          </div>
-        )}
+        <FotoUpload
+          pacienteId={pacienteId}
+          tipo="LESAO_PELE"
+          fotos={fotosLesao}
+          mostrarGaleria
+          mostrarFormulario={false}
+          onChange={(novasFotos) =>
+            substituirCategoria("LESAO_PELE", novasFotos)
+          }
+          onFotoDeletada={(id) =>
+            setFotos((atuais) => atuais.filter((foto) => foto.id !== id))
+          }
+        />
       </div>
 
-      {/* 4. Exames de Alta Complexidade (Laudos Textuais) */}
+      {/* 4. Exames de Alta Complexidade */}
       <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-base font-semibold text-slate-800 flex items-center gap-2">
@@ -338,6 +374,7 @@ export default function ExamesImagemTab({
             (Laudos)
           </h3>
           <button
+            type="button"
             onClick={() => setShowForm(!showForm)}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
           >
@@ -427,7 +464,11 @@ export default function ExamesImagemTab({
                       key={v}
                       type="button"
                       onClick={() => setNovo({ ...novo, lateralidade: v })}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${novo.lateralidade === v ? "bg-blue-50 border-blue-300 text-blue-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                        novo.lateralidade === v
+                          ? "bg-blue-50 border-blue-300 text-blue-700"
+                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                      }`}
                     >
                       {l}
                     </button>
@@ -449,12 +490,14 @@ export default function ExamesImagemTab({
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <button
+                type="button"
                 onClick={() => setShowForm(false)}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-200 transition-colors"
               >
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={salvarExame}
                 disabled={!novo.data || !novo.sitio || saving}
                 className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
@@ -519,6 +562,7 @@ export default function ExamesImagemTab({
                       )}
                     </div>
                     <button
+                      type="button"
                       onClick={() => removerExame(e.id)}
                       className="text-slate-300 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
@@ -540,7 +584,8 @@ export default function ExamesImagemTab({
             curativos ({timelineCurativos.length})
           </h3>
           <button
-            onClick={() => setMostrarUploadCurativo(!mostrarUploadCurativo)}
+            type="button"
+            onClick={() => setMostrarUploadCurativo((v) => !v)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-sm font-medium hover:bg-blue-100 transition-colors"
           >
             {mostrarUploadCurativo ? (
@@ -548,7 +593,7 @@ export default function ExamesImagemTab({
             ) : (
               <Plus className="w-4 h-4" />
             )}
-            {mostrarUploadCurativo ? "Fechar Upload" : "Adicionar"}
+            {mostrarUploadCurativo ? "Fechar" : "Adicionar"}
           </button>
         </div>
         <p className="text-sm text-slate-500 mb-5">
@@ -556,13 +601,15 @@ export default function ExamesImagemTab({
         </p>
 
         {mostrarUploadCurativo && (
-          <div className="mb-4">
+          <div className="mb-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
             <FotoUpload
               pacienteId={pacienteId}
               tipo="CURATIVO"
-              fotos={fotosCurativo}
+              fotos={fotosCurativo} /* ✨ ADICIONE ESTA LINHA */
+              mostrarGaleria={false}
+              mostrarFormulario={true}
               onChange={(novasFotos) => {
-                setFotos(novasFotos);
+                substituirCategoria("CURATIVO", novasFotos);
                 setMostrarUploadCurativo(false);
               }}
             />
@@ -576,7 +623,7 @@ export default function ExamesImagemTab({
         ) : (
           <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
             {timelineCurativos.map((item, idx) => (
-              <div key={idx} className="shrink-0 w-48">
+              <div key={`${item.id}-${idx}`} className="shrink-0 w-48">
                 <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-50 group">
                   <img
                     src={item.url}
@@ -586,6 +633,7 @@ export default function ExamesImagemTab({
 
                   {item.origem === "foto" && (
                     <button
+                      type="button"
                       onClick={() => removerFoto(item.id)}
                       className="absolute top-2 right-2 w-7 h-7 rounded-lg bg-white/90 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-50 shadow-sm"
                     >

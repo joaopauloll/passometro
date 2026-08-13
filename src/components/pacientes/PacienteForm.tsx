@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import SimNao from "@/components/ui/simnao";
 import {
   Select,
   SelectContent,
@@ -422,12 +423,26 @@ type Props = {
  * COMPONENTE
  * ========================================================================== */
 
-export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
+export default function PacienteForm({ inicial, modo }: Props) {
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
 
   const fotosPendentesRef = useRef<FotoPendente[]>([]);
+
+  const [insereRadiografias, setInsereRadiografias] = useState(false);
+  const [insereLesaoPele, setInsereLesaoPele] = useState(false);
+
+  function atualizarFotosPendentesPorTipo(
+    tipo: FotoPendente["tipo"],
+    fotosDoTipo: FotoPendente[],
+  ) {
+    const outrasFotos = fotosPendentesRef.current.filter(
+      (foto) => foto.tipo !== tipo,
+    );
+
+    fotosPendentesRef.current = [...outrasFotos, ...fotosDoTipo];
+  }
 
   const [novoAlergico, setNovoAlergico] = useState("");
 
@@ -1790,37 +1805,7 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
       </Card>
 
       {/* ================================================================
-          5. FUNÇÃO RENAL
-      ================================================================ */}
-
-      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
-          <CardTitle className="text-sm font-semibold text-slate-800">
-            Função renal
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent className="px-5 py-4">
-          <Select
-            value={form.comorbidadesJson.funcaoRenal || "normal"}
-            onValueChange={(value) =>
-              setComorbidade("funcaoRenal", value || "normal")
-            }
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-
-            <SelectContent>
-              <SelectItem value="normal">Normal</SelectItem>
-              <SelectItem value="reduzida">Reduzida</SelectItem>
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
-
-      {/* ================================================================
-          6. CIRURGIAS PRÉVIAS
+          5. CIRURGIAS PRÉVIAS
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -1951,7 +1936,7 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
       </Card>
 
       {/* ================================================================
-          7. MEDICAMENTOS
+          6. MEDICAMENTOS
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -1962,40 +1947,23 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
         </CardHeader>
 
         <CardContent className="px-5 py-4 space-y-4">
-          <div className="flex gap-4">
-            {(["sim", "nao"] as const).map((valor) => (
-              <label
-                key={valor}
-                className="flex cursor-pointer items-center gap-2"
-              >
-                <input
-                  type="radio"
-                  name="usaMedicamentos"
-                  checked={usaMedicamentos === (valor === "sim")}
-                  onChange={() => {
-                    const usar = valor === "sim";
+          <SimNao
+            label="O paciente faz uso de medicamentos?"
+            value={usaMedicamentos}
+            onChange={(usar) => {
+              setUsaMedicamentos(usar);
 
-                    setUsaMedicamentos(usar);
-
-                    if (!usar) {
-                      setForm({
-                        ...form,
-                        medicamentosJson: [],
-                        medicamentosComuns: [],
-                        medicamentosOutros: "",
-                        medicacoes: "",
-                      });
-                    }
-                  }}
-                  className="accent-blue-600"
-                />
-
-                <span className="text-sm font-medium">
-                  {valor === "sim" ? "Sim" : "Não"}
-                </span>
-              </label>
-            ))}
-          </div>
+              if (!usar) {
+                setForm({
+                  ...form,
+                  medicamentosJson: [],
+                  medicamentosComuns: [],
+                  medicamentosOutros: "",
+                  medicacoes: "",
+                });
+              }
+            }}
+          />
 
           {usaMedicamentos && (
             <div className="space-y-4">
@@ -2132,7 +2100,7 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
       </Card>
 
       {/* ================================================================
-          8. ALERGIAS
+          7. ALERGIAS
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -2143,25 +2111,18 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
         </CardHeader>
 
         <CardContent className="px-5 py-4 space-y-3">
-          <label className="flex cursor-pointer items-center gap-2">
-            <Checkbox
-              checked={form.temAlergia}
-              onCheckedChange={(value) => {
-                const tem = Boolean(value);
-
-                setForm({
-                  ...form,
-                  temAlergia: tem,
-                  alergiasLista: tem ? form.alergiasLista : [],
-                  alergias: tem ? form.alergias : "",
-                });
-              }}
-            />
-
-            <span className="text-sm font-medium">
-              Paciente possui alergia a medicamentos
-            </span>
-          </label>
+          <SimNao
+            label="Paciente tem alergias?"
+            value={form.temAlergia}
+            onChange={(tem) => {
+              setForm({
+                ...form,
+                temAlergia: tem,
+                alergiasLista: tem ? form.alergiasLista : [],
+                alergias: tem ? form.alergias : "",
+              });
+            }}
+          />
 
           {form.temAlergia && (
             <div className="space-y-3 rounded-xl border border-red-200 bg-red-50 p-4">
@@ -2218,7 +2179,7 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
       </Card>
 
       {/* ================================================================
-          9. LABORATÓRIO
+          8. LABORATÓRIO
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -2304,7 +2265,7 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
       </Card>
 
       {/* ================================================================
-      10. INFECÇÃO
+      9. INFECÇÃO
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -2315,23 +2276,16 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
         </CardHeader>
 
         <CardContent className="px-5 py-4 space-y-4">
-          <label className="flex cursor-pointer items-center gap-2">
-            <Checkbox
-              checked={form.temInfeccao}
-              onCheckedChange={(value) => {
-                const temInfeccao = Boolean(value);
-
-                setForm({
-                  ...form,
-                  temInfeccao,
-                });
-              }}
-            />
-
-            <span className="text-sm font-medium text-red-700">
-              Paciente com infecção ortopédica
-            </span>
-          </label>
+          <SimNao
+            label="Paciente com infecção ortopédica?"
+            value={form.temInfeccao}
+            onChange={(temInfeccao) => {
+              setForm({
+                ...form,
+                temInfeccao,
+              });
+            }}
+          />
 
           {form.temInfeccao && (
             <div className="space-y-4 rounded-xl border border-red-200 bg-red-50 p-4">
@@ -2487,7 +2441,7 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
       </Card>
 
       {/* ================================================================
-          11. CULTURAS
+          10. CULTURAS
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -2579,7 +2533,7 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
       </Card>
 
       {/* ================================================================
-          12. PARECERES
+          11. PARECERES
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -2682,7 +2636,7 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
       </Card>
 
       {/* ================================================================
-          13. EXAMES DE IMAGEM
+          12. EXAMES DE IMAGEM
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -2857,7 +2811,7 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
       </Card>
 
       {/* ================================================================
-          14. TRAUMA
+          13. TRAUMA
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -2914,7 +2868,7 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
       </Card>
 
       {/* ================================================================
-          15. PPS
+          14. PPS
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -2960,7 +2914,7 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
       </Card>
 
       {/* ================================================================
-          16. ALTA
+          15. ALTA
       ================================================================ */}
 
       {form.tipoStatus === "POS_OPERATORIO" && (
@@ -3036,7 +2990,7 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
       )}
 
       {/* ================================================================
-          17. CLÍNICA MÉDICA
+          16. CLÍNICA MÉDICA
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -3105,7 +3059,7 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
       </Card>
 
       {/* ================================================================
-      18. RISCO CIRÚRGICO
+      17. RISCO CIRÚRGICO
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -3117,31 +3071,11 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
 
         <CardContent className="px-5 py-4 space-y-4">
           {/* Risco concluído? */}
-          <div className="flex gap-4">
-            <label className="flex cursor-pointer items-center gap-2">
-              <input
-                type="radio"
-                name="riscoConcluido"
-                checked={form.riscoJson.concluido}
-                onChange={() => setRisco("concluido", true)}
-                className="accent-blue-600"
-              />
-
-              <span className="text-sm font-medium">Concluído</span>
-            </label>
-
-            <label className="flex cursor-pointer items-center gap-2">
-              <input
-                type="radio"
-                name="riscoConcluido"
-                checked={!form.riscoJson.concluido}
-                onChange={() => setRisco("concluido", false)}
-                className="accent-blue-600"
-              />
-
-              <span className="text-sm font-medium">Pendente</span>
-            </label>
-          </div>
+          <SimNao
+            label="Risco cirúrgico concluído?"
+            value={form.riscoJson.concluido}
+            onChange={(concluido) => setRisco("concluido", concluido)}
+          />
 
           {/* ============================================================
               RISCO CONCLUÍDO
@@ -3198,18 +3132,11 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
               </div>
 
               {/* UTI pós-operatória */}
-              <label className="flex cursor-pointer items-center gap-2">
-                <Checkbox
-                  checked={form.riscoJson.indicaUTI}
-                  onCheckedChange={(value) =>
-                    setRisco("indicaUTI", Boolean(value))
-                  }
-                />
-
-                <span className="text-sm font-semibold text-red-700">
-                  Houve indicação de UTI pós-operatória?
-                </span>
-              </label>
+              <SimNao
+                label="Houve indicação de UTI pós-operatória?"
+                value={form.riscoJson.indicaUTI}
+                onChange={(indicaUTI) => setRisco("indicaUTI", indicaUTI)}
+              />
 
               {form.riscoJson.indicaUTI && (
                 <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
@@ -3346,16 +3273,111 @@ export default function PacienteForm({ inicial, modo, fotosSalvas }: Props) {
       </Card>
 
       {/* ================================================================
-          19. FOTOS
+          18. FUNÇÃO RENAL
       ================================================================ */}
 
-      <FotoUpload
-        pacienteId={modo === "editar" ? inicial?.id : undefined}
-        fotos={fotosSalvas}
-        onFotosPendentes={(fotos) => {
-          fotosPendentesRef.current = fotos;
-        }}
-      />
+      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+          <CardTitle className="text-sm font-semibold text-slate-800">
+            Função renal
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent className="px-5 py-4">
+          <Select
+            value={form.comorbidadesJson.funcaoRenal || "normal"}
+            onValueChange={(value) =>
+              setComorbidade("funcaoRenal", value || "normal")
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectItem value="normal">Normal</SelectItem>
+              <SelectItem value="reduzida">Reduzida</SelectItem>
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      {/* ================================================================
+          19. FOTOS DA ADMISSÃO
+      ================================================================ */}
+      {modo === "criar" && (
+        <div className="space-y-4">
+          {/* Radiografias da admissão */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                🩻 Radiografias da admissão
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              <SimNao
+                label="Deseja inserir radiografias?"
+                value={insereRadiografias}
+                onChange={(novoValor) => {
+                  setInsereRadiografias(novoValor);
+
+                  if (!novoValor) {
+                    atualizarFotosPendentesPorTipo("RADIOGRAFIA", []);
+                  }
+                }}
+              />
+
+              {insereRadiografias && (
+                <FotoUpload
+                  tipo="RADIOGRAFIA"
+                  titulo="Adicionar radiografias da admissão"
+                  mostrarGaleria={false}
+                  pacienteId={undefined}
+                  onFotosPendentes={(fotos) =>
+                    atualizarFotosPendentesPorTipo("RADIOGRAFIA", fotos)
+                  }
+                />
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Fotos de lesões de pele */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                🩹 Fotos de lesões de pele
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              <SimNao
+                label="Deseja inserir foto de lesão?"
+                value={insereLesaoPele}
+                onChange={(novoValor) => {
+                  setInsereLesaoPele(novoValor);
+
+                  if (!novoValor) {
+                    atualizarFotosPendentesPorTipo("LESAO_PELE", []);
+                  }
+                }}
+              />
+
+              {insereLesaoPele && (
+                <FotoUpload
+                  tipo="LESAO_PELE"
+                  titulo="Adicionar foto de lesão"
+                  mostrarGaleria={false}
+                  pacienteId={undefined}
+                  onFotosPendentes={(fotos) =>
+                    atualizarFotosPendentesPorTipo("LESAO_PELE", fotos)
+                  }
+                />
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* ================================================================
           AÇÕES
