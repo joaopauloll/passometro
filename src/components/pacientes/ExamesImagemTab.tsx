@@ -7,6 +7,7 @@ import {
   Trash2,
   Image as ImageIcon,
   ExternalLink,
+  Eye,
   X,
   Calendar,
   FileText,
@@ -34,14 +35,27 @@ const HOSPITAIS_EXAMES = [
 
 const TIPOS_EXAME = [
   { value: "radiografia", label: "Radiografia (RX)" },
-  { value: "tc", label: "Tomografia Computadorizada (TC)" },
-  { value: "rm", label: "Ressonância Magnética (RM)" },
-  { value: "usg", label: "Ultrassonografia (USG)" },
   { value: "ecg", label: "Eletrocardiograma (ECG)" },
-  { value: "eco", label: "Ecocardiograma" },
+  { value: "ecocardiograma", label: "Ecocardiograma" },
+  { value: "tomografia", label: "Tomografia Computadorizada (TC)" },
+  { value: "ressonancia", label: "Ressonância Magnética (RM)" },
+  { value: "ultrassonografia", label: "Ultrassonografia (USG)" },
+  { value: "outro", label: "Outro" },
 ];
 
-const EXAMES_ALTA_COMPLEXIDADE = ["tc", "rm", "usg", "ecg", "eco"];
+const EXAMES_ALTA_COMPLEXIDADE = [
+  "ecg",
+  "ecocardiograma",
+  "tomografia",
+  "ressonancia",
+  "ultrassonografia",
+];
+
+const HOSPITAIS_ORIGEM = [
+  { value: "WBSRAD", label: "Hospital Memorial (WBSRad)" },
+  { value: "EPACS", label: "Walfredo Gurgel (EPACS)" },
+  { value: "EXTERNO", label: "Outro / Externo" },
+];
 
 const inputCls =
   "w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 bg-white";
@@ -63,6 +77,18 @@ const normalizarTipo = (tipo: string): FotoTipo | string => {
 
   return tipo;
 };
+
+function formatarData(data: string | Date | null | undefined) {
+  if (!data) return "";
+
+  const dataObj = data instanceof Date ? data : new Date(data);
+
+  if (Number.isNaN(dataObj.getTime())) {
+    return "";
+  }
+
+  return format(dataObj, "dd/MM/yyyy");
+}
 
 export default function ExamesImagemTab({
   pacienteId,
@@ -86,15 +112,18 @@ export default function ExamesImagemTab({
   const [mostrarUploadLesao, setMostrarUploadLesao] = useState(false);
   const [mostrarUploadCurativo, setMostrarUploadCurativo] = useState(false);
 
-  const [novo, setNovo] = useState({
-    data: new Date().toISOString().slice(0, 10),
-    tipo_exame: "tc",
+  const novoInicial = {
+    tipo: "tomografia",
     lateralidade: "nao_aplicavel",
+    laudo: "",
+    dataRealizacao: new Date().toISOString().slice(0, 10),
     sitio: "",
     achados: "",
-    laudo: "",
-    hospital_origem: "WBSRAD",
-  });
+    linkTipo: "WBSRAD",
+    linkUrl: "",
+  };
+
+  const [novo, setNovo] = useState(novoInicial);
 
   const fotosRx = fotos.filter((f) => normalizarTipo(f.tipo) === "RADIOGRAFIA");
   const fotosLesao = fotos.filter(
@@ -127,8 +156,15 @@ export default function ExamesImagemTab({
       })),
   ].sort((a, b) => (b.data || "").localeCompare(a.data || ""));
 
+  const getTipo = (e: any) =>
+    (e.tipoExame || e.tipo_exame || e.tipo || "").toLowerCase();
+
   const examesAltaComplexidade = exames.filter((e) =>
-    EXAMES_ALTA_COMPLEXIDADE.includes(e.tipo_exame),
+    EXAMES_ALTA_COMPLEXIDADE.includes(getTipo(e)),
+  );
+
+  const examesSimples = exames.filter(
+    (e) => !EXAMES_ALTA_COMPLEXIDADE.includes(getTipo(e)),
   );
 
   const substituirCategoria = (tipo: FotoTipo, novasFotos: FotoSalva[]) => {
@@ -142,7 +178,7 @@ export default function ExamesImagemTab({
   };
 
   const salvarExame = async () => {
-    if (!novo.data || !novo.sitio) return;
+    if (!novo.dataRealizacao || !novo.sitio || !novo.tipo) return;
     setSaving(true);
 
     try {
@@ -156,13 +192,8 @@ export default function ExamesImagemTab({
         const data = await res.json();
         setExames((atuais) => [data, ...atuais]);
         setNovo({
-          data: new Date().toISOString().slice(0, 10),
-          tipo_exame: "tc",
-          lateralidade: "nao_aplicavel",
-          sitio: "",
-          achados: "",
-          laudo: "",
-          hospital_origem: "WBSRAD",
+          ...novoInicial,
+          dataRealizacao: new Date().toISOString().slice(0, 10),
         });
         setShowForm(false);
       }
@@ -203,11 +234,11 @@ export default function ExamesImagemTab({
     );
   };
 
-  const hospitalInfo = (id: string) =>
-    HOSPITAIS_EXAMES.find((h) => h.id === id);
-
   const labelTipoExame = (val: string) =>
     TIPOS_EXAME.find((t) => t.value === val)?.label || val;
+
+  const hospitalInfo = (valor: string) =>
+    HOSPITAIS_ORIGEM.find((hospital) => hospital.value === valor);
 
   return (
     <div className="space-y-6">
@@ -288,7 +319,7 @@ export default function ExamesImagemTab({
             <FotoUpload
               pacienteId={pacienteId}
               tipo="RADIOGRAFIA"
-              fotos={fotosRx} /* ✨ ADICIONE ESTA LINHA */
+              fotos={fotosRx}
               mostrarGaleria={false}
               mostrarFormulario={true}
               onChange={(novasFotos) => {
@@ -340,7 +371,7 @@ export default function ExamesImagemTab({
             <FotoUpload
               pacienteId={pacienteId}
               tipo="LESAO_PELE"
-              fotos={fotosLesao} /* ✨ ADICIONE ESTA LINHA */
+              fotos={fotosLesao}
               mostrarGaleria={false}
               mostrarFormulario={true}
               onChange={(novasFotos) => {
@@ -370,19 +401,26 @@ export default function ExamesImagemTab({
       <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-base font-semibold text-slate-800 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-slate-400" /> Exames de Imagem
-            (Laudos)
+            <FileText className="w-5 h-5 text-slate-400" />
+            Exames de alta complexidade ({examesAltaComplexidade.length})
           </h3>
+
           <button
             type="button"
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => setShowForm((v) => !v)}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
           >
-            <Plus className="w-4 h-4" /> Novo Laudo
+            {showForm ? (
+              <X className="w-4 h-4" />
+            ) : (
+              <Plus className="w-4 h-4" />
+            )}
+            {showForm ? "Fechar" : "Novo exame"}
           </button>
         </div>
+
         <p className="text-sm text-slate-500 mb-5">
-          ECG, Tomografia, Ressonância, Ultrassonografia, etc.
+          ECG, ecocardiograma, tomografia, ressonância e ultrassonografia.
         </p>
 
         {showForm && (
@@ -392,102 +430,156 @@ export default function ExamesImagemTab({
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Tipo de exame *
                 </label>
+
                 <select
                   className={inputCls}
-                  value={novo.tipo_exame}
+                  value={novo.tipo}
                   onChange={(e) =>
-                    setNovo({ ...novo, tipo_exame: e.target.value })
+                    setNovo((atual) => ({
+                      ...atual,
+                      tipo: e.target.value,
+                    }))
                   }
                 >
-                  {TIPOS_EXAME.filter((t) => t.value !== "radiografia").map(
-                    (t) => (
-                      <option key={t.value} value={t.value}>
-                        {t.label}
-                      </option>
-                    ),
-                  )}
+                  {TIPOS_EXAME.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
                 </select>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Data da realização *
                 </label>
+
                 <input
                   type="date"
                   className={inputCls}
-                  value={novo.data}
-                  onChange={(e) => setNovo({ ...novo, data: e.target.value })}
+                  value={novo.dataRealizacao}
+                  onChange={(e) =>
+                    setNovo((atual) => ({
+                      ...atual,
+                      dataRealizacao: e.target.value,
+                    }))
+                  }
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Sítio/Região examinada *
+                  Sítio / Região examinada *
                 </label>
+
                 <input
                   className={inputCls}
                   value={novo.sitio}
-                  onChange={(e) => setNovo({ ...novo, sitio: e.target.value })}
-                  placeholder="ex: Joelho esquerdo, Tórax..."
+                  onChange={(e) =>
+                    setNovo((atual) => ({
+                      ...atual,
+                      sitio: e.target.value,
+                    }))
+                  }
+                  placeholder="Ex: Joelho esquerdo, tórax..."
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Sistema / Origem
-                </label>
-                <select
-                  className={inputCls}
-                  value={novo.hospital_origem}
-                  onChange={(e) =>
-                    setNovo({ ...novo, hospital_origem: e.target.value })
-                  }
-                >
-                  {HOSPITAIS_EXAMES.map((h) => (
-                    <option key={h.id} value={h.id}>
-                      {h.nome}
-                    </option>
-                  ))}
-                  <option value="outro">Outro / Externo</option>
-                </select>
-              </div>
-              <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Lateralidade
                 </label>
+
                 <div className="flex gap-2 flex-wrap">
                   {[
                     ["nao_aplicavel", "Não se aplica"],
                     ["direita", "Direita"],
                     ["esquerda", "Esquerda"],
                     ["bilateral", "Bilateral"],
-                  ].map(([v, l]) => (
+                  ].map(([valor, texto]) => (
                     <button
-                      key={v}
+                      key={valor}
                       type="button"
-                      onClick={() => setNovo({ ...novo, lateralidade: v })}
+                      onClick={() =>
+                        setNovo((atual) => ({
+                          ...atual,
+                          lateralidade: valor,
+                        }))
+                      }
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
-                        novo.lateralidade === v
+                        novo.lateralidade === valor
                           ? "bg-blue-50 border-blue-300 text-blue-700"
                           : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
                       }`}
                     >
-                      {l}
+                      {texto}
                     </button>
                   ))}
                 </div>
               </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Achados
+                </label>
+
+                <textarea
+                  className={textareaCls}
+                  rows={3}
+                  value={novo.achados}
+                  onChange={(e) =>
+                    setNovo((atual) => ({
+                      ...atual,
+                      achados: e.target.value,
+                    }))
+                  }
+                  placeholder="Descreva os principais achados..."
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Laudo
+                </label>
+
+                <textarea
+                  className={textareaCls}
+                  rows={4}
+                  value={novo.laudo}
+                  onChange={(e) =>
+                    setNovo((atual) => ({
+                      ...atual,
+                      laudo: e.target.value,
+                    }))
+                  }
+                  placeholder="Digite o laudo do exame..."
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Hospital de origem
+                </label>
+
+                <select
+                  className={inputCls}
+                  value={novo.linkTipo}
+                  onChange={(e) =>
+                    setNovo((atual) => ({
+                      ...atual,
+                      linkTipo: e.target.value,
+                    }))
+                  }
+                >
+                  {HOSPITAIS_ORIGEM.map((hospital) => (
+                    <option key={hospital.value} value={hospital.value}>
+                      {hospital.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Descrição / Laudo
-              </label>
-              <textarea
-                className={textareaCls}
-                rows={4}
-                value={novo.laudo}
-                onChange={(e) => setNovo({ ...novo, laudo: e.target.value })}
-                placeholder="Descreva o laudo ou os achados principais..."
-              />
-            </div>
+
             <div className="flex justify-end gap-3 pt-2">
               <button
                 type="button"
@@ -496,13 +588,16 @@ export default function ExamesImagemTab({
               >
                 Cancelar
               </button>
+
               <button
                 type="button"
                 onClick={salvarExame}
-                disabled={!novo.data || !novo.sitio || saving}
+                disabled={
+                  !novo.dataRealizacao || !novo.sitio || !novo.tipo || saving
+                }
                 className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
-                {saving ? "Salvando..." : "Salvar Laudo"}
+                {saving ? "Salvando..." : "Salvar exame"}
               </button>
             </div>
           </div>
@@ -510,12 +605,15 @@ export default function ExamesImagemTab({
 
         {examesAltaComplexidade.length === 0 && !showForm ? (
           <p className="text-sm text-slate-400 py-2">
-            Nenhum laudo registrado.
+            Nenhum exame de alta complexidade registrado.
           </p>
         ) : (
           <div className="space-y-3">
             {examesAltaComplexidade.map((e) => {
-              const hosp = hospitalInfo(e.hospital_origem);
+              const hospital = hospitalInfo(
+                e.hospitalOrigem || e.hospital_origem,
+              );
+
               return (
                 <div
                   key={e.id}
@@ -525,42 +623,76 @@ export default function ExamesImagemTab({
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-2">
                         <span className="text-xs font-semibold px-2 py-1 rounded bg-blue-50 text-blue-700">
-                          {labelTipoExame(e.tipo_exame)}
+                          {labelTipoExame(
+                            e.tipoExame || e.tipo_exame || e.tipo,
+                          )}
                         </span>
+
                         <span className="text-sm font-semibold text-slate-800">
                           {e.sitio}
                         </span>
+
                         {e.lateralidade !== "nao_aplicavel" && (
                           <span className="text-xs text-slate-500 capitalize">
                             ({e.lateralidade})
                           </span>
                         )}
+
                         <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded">
-                          {format(new Date(e.data), "dd/MM/yyyy")}
+                          {formatarData(
+                            e.data || e.dataRealizacao || e.data_realizacao,
+                          )}
                         </span>
-                        {hosp && (
+
+                        {hospital && (
                           <span className="text-xs font-medium px-2 py-1 rounded border border-slate-200 text-slate-600">
-                            {hosp.nome}
+                            {hospital.label}
                           </span>
                         )}
                       </div>
-                      {e.laudo && (
-                        <p className="text-sm text-slate-600 mt-2 leading-relaxed whitespace-pre-wrap">
-                          {e.laudo}
-                        </p>
+
+                      {e.achados && (
+                        <div className="mt-2">
+                          <p className="text-xs font-semibold text-slate-500 mb-1">
+                            Achados
+                          </p>
+
+                          <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+                            {e.achados}
+                          </p>
+                        </div>
                       )}
-                      {hosp && (
+
+                      {(e.laudo || e.descricao) && (
+                        <div className="mt-3">
+                          <p className="text-xs font-semibold text-slate-500 mb-1">
+                            Laudo
+                          </p>
+                          <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+                            {e.laudo || e.descricao}
+                          </p>
+                        </div>
+                      )}
+
+                      {hospital && (
                         <a
-                          href={hosp.url}
+                          href={
+                            HOSPITAIS_EXAMES.find(
+                              (h) =>
+                                h.id ===
+                                (e.hospitalOrigem || e.hospital_origem),
+                            )?.url
+                          }
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline mt-3"
                         >
-                          <ExternalLink className="w-3 h-3" /> Acessar sistema
-                          de origem
+                          <ExternalLink className="w-3 h-3" />
+                          Acessar sistema de origem
                         </a>
                       )}
                     </div>
+
                     <button
                       type="button"
                       onClick={() => removerExame(e.id)}
@@ -576,7 +708,90 @@ export default function ExamesImagemTab({
         )}
       </div>
 
-      {/* 5. Linha do Tempo de Curativos */}
+      {/* 5. Exames de Imagem Simples */}
+      {examesSimples.length > 0 && (
+        <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <Eye className="w-4 h-4 text-slate-400" />
+
+            <h3 className="text-sm font-semibold text-slate-700">
+              Exames de imagem simples ({examesSimples.length})
+            </h3>
+          </div>
+
+          <div className="space-y-2">
+            {examesSimples.map((e) => {
+              const hosp = hospitalInfo(e.hospitalOrigem || e.hospital_origem);
+
+              return (
+                <div
+                  key={e.id}
+                  className="p-4 rounded-xl bg-slate-50 border border-slate-100"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-slate-700">
+                          {labelTipoExame(
+                            e.tipoExame || e.tipo_exame || e.tipo,
+                          )}
+                        </span>
+
+                        <span className="text-sm text-slate-600">
+                          {e.sitio}
+                        </span>
+
+                        {e.lateralidade &&
+                          e.lateralidade !== "nao_aplicavel" && (
+                            <span className="text-xs text-slate-500 capitalize">
+                              ({e.lateralidade})
+                            </span>
+                          )}
+
+                        <span className="text-xs text-slate-400">
+                          {formatarData(
+                            e.data || e.dataRealizacao || e.data_realizacao,
+                          )}
+                        </span>
+
+                        {hosp && (
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-white text-slate-500">
+                            {hosp.label}
+                          </span>
+                        )}
+                      </div>
+
+                      {e.achados && (
+                        <p className="text-sm text-slate-600 mt-1.5 leading-relaxed whitespace-pre-wrap">
+                          {e.achados}
+                        </p>
+                      )}
+
+                      {(e.laudo || e.descricao) && (
+                        <p className="text-sm text-slate-600 mt-2 leading-relaxed whitespace-pre-wrap">
+                          <span className="font-medium">Laudo: </span>
+                          {e.laudo || e.descricao}
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => removerExame(e.id)}
+                      className="text-slate-300 hover:text-red-500 p-1"
+                      title="Excluir exame"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 6. Linha do Tempo de Curativos */}
       <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-base font-semibold text-slate-800 flex items-center gap-2">
@@ -605,7 +820,7 @@ export default function ExamesImagemTab({
             <FotoUpload
               pacienteId={pacienteId}
               tipo="CURATIVO"
-              fotos={fotosCurativo} /* ✨ ADICIONE ESTA LINHA */
+              fotos={fotosCurativo}
               mostrarGaleria={false}
               mostrarFormulario={true}
               onChange={(novasFotos) => {
@@ -660,7 +875,7 @@ export default function ExamesImagemTab({
                     item.data && (
                       <div className="text-xs text-slate-600 flex items-center gap-1.5 font-medium px-1">
                         <Calendar className="w-3 h-3 text-slate-400" />
-                        {format(new Date(item.data), "dd/MM/yyyy")}
+                        {formatarData(item.data)}
                       </div>
                     )
                   )}

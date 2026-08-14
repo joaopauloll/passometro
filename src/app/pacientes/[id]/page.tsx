@@ -11,6 +11,17 @@ export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ id: string }> };
 
+function parseCirurgioes(value: string): string[] {
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 export default async function PacienteDetailPage({ params }: Params) {
   const session = await getSessionFromCookies();
   if (!session) redirect("/login");
@@ -37,13 +48,7 @@ export default async function PacienteDetailPage({ params }: Params) {
 
   if (!paciente) notFound();
 
-  const cirurgioes: string[] = (() => {
-    try {
-      return JSON.parse(paciente.cirurgioes);
-    } catch {
-      return [];
-    }
-  })();
+  const cirurgioes = parseCirurgioes(paciente.cirurgioes);
 
   const diasInternado = differenceInDays(
     new Date(),
@@ -51,6 +56,7 @@ export default async function PacienteDetailPage({ params }: Params) {
   );
 
   let idadePaciente: number | null = null;
+
   if (paciente.dataNascimento) {
     idadePaciente = differenceInYears(
       new Date(),
@@ -58,18 +64,25 @@ export default async function PacienteDetailPage({ params }: Params) {
     );
   }
 
+  const ultimaCirurgia = paciente.cirurgias[0] ?? null;
+
+  const dpo =
+    paciente.tipoStatus === "POS_OPERATORIO" && ultimaCirurgia
+      ? differenceInDays(new Date(), new Date(ultimaCirurgia.dataCirurgia))
+      : null;
+
   const statusLabels: Record<string, string> = {
     INTERNADO: "Internado",
     ALTA_ORTOPEDIA: "Alta Ortopedia",
     ALTA_HOSPITALAR: "Alta Hospitalar",
   };
+
   const statusColors: Record<string, string> = {
     INTERNADO: "bg-blue-100 text-blue-800 border-blue-200",
     ALTA_ORTOPEDIA: "bg-yellow-100 text-yellow-800 border-yellow-200",
     ALTA_HOSPITALAR: "bg-green-100 text-green-800 border-green-200",
   };
 
-  // Serialize dates for client components
   const evolucoesSerialized = paciente.evolucoes.map((e) => ({
     id: e.id,
     data: e.data.toISOString(),
@@ -109,7 +122,9 @@ export default async function PacienteDetailPage({ params }: Params) {
     tipoStatus: paciente.tipoStatus,
     status: paciente.status,
     comorbidades: paciente.comorbidades,
+    comorbidadesJson: paciente.comorbidadesJson,
     medicacoes: paciente.medicacoes,
+    medicamentosJson: paciente.medicamentosJson,
     alergias: paciente.alergias,
     temInfeccao: paciente.temInfeccao,
     temAlergia: paciente.temAlergia,
@@ -117,6 +132,16 @@ export default async function PacienteDetailPage({ params }: Params) {
     traumaData: paciente.traumaData?.toISOString() ?? null,
     traumaTempo: paciente.traumaTempo,
     pps: paciente.pps,
+    funcaoRenal: paciente.funcaoRenal,
+    infeccaoJson: paciente.infeccaoJson,
+    riscoJson: paciente.riscoJson,
+    aguardaClinica: paciente.aguardaClinica,
+    clinicaMedico: paciente.clinicaMedico,
+    compSolturaAssetica: paciente.compSolturaAssetica,
+    compLuxacao: paciente.compLuxacao,
+    compFalhaImplante: paciente.compFalhaImplante,
+    compPseudoartrose: paciente.compPseudoartrose,
+    compOutro: paciente.compOutro,
   };
 
   return (
@@ -138,29 +163,65 @@ export default async function PacienteDetailPage({ params }: Params) {
             <h1 className="text-2xl font-bold text-slate-900">
               {paciente.nome}
             </h1>
-            <Badge className={`border ${statusColors[paciente.status]}`}>
-              {statusLabels[paciente.status]}
+
+            <Badge
+              className={`border ${
+                statusColors[paciente.status] ??
+                "bg-slate-100 text-slate-800 border-slate-200"
+              }`}
+            >
+              {statusLabels[paciente.status] ?? paciente.status}
             </Badge>
+
+            <Badge
+              className={
+                paciente.tipoStatus === "POS_OPERATORIO"
+                  ? "bg-blue-50 text-blue-700 border-blue-200 border"
+                  : "bg-amber-50 text-amber-700 border-amber-200 border"
+              }
+            >
+              {paciente.tipoStatus === "POS_OPERATORIO"
+                ? "Pós-operatório"
+                : "Pré-operatório"}
+            </Badge>
+
+            {dpo !== null && dpo >= 0 && (
+              <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 border">
+                {dpo}º DPO
+              </Badge>
+            )}
+
+            {paciente.aguardaClinica && (
+              <Badge className="bg-amber-50 text-amber-800 border-amber-200 border">
+                Aguarda Clínica
+              </Badge>
+            )}
+
             {paciente.temInfeccao && (
               <Badge variant="destructive">Infecção</Badge>
             )}
+
             {paciente.temAlergia && paciente.alergias && (
               <Badge className="bg-red-100 text-red-800 border-red-300 border">
                 ⚠ {paciente.alergias}
               </Badge>
             )}
           </div>
+
           <div className="flex items-center gap-2 mt-1 text-sm text-slate-500 flex-wrap">
             <span>
               Leito <strong className="text-slate-700">{paciente.leito}</strong>
             </span>
+
             <span>·</span>
+
             <span>
               Reg.{" "}
               <strong className="text-slate-700">
                 {paciente.registroHospitalar}
               </strong>
             </span>
+
             {paciente.cpf && (
               <>
                 <span>·</span>
@@ -169,11 +230,14 @@ export default async function PacienteDetailPage({ params }: Params) {
                 </span>
               </>
             )}
+
             <span>·</span>
+
             <span>
               <strong className="text-slate-700">{diasInternado}</strong>d
               internado
             </span>
+
             {idadePaciente !== null && (
               <>
                 <span>·</span>
@@ -189,10 +253,11 @@ export default async function PacienteDetailPage({ params }: Params) {
         <div className="flex gap-2 flex-wrap flex-shrink-0">
           <Link
             href={`/pacientes/${id}/editar`}
-            className="text-sm border border-slate-300 text-slate-700 hover:bg-slate-100 hover:border-slate-400 hover:text-slate-900 px-3 py-1.5 rounded-lg transition-all duration-150 font-medium active:scale-95"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
           >
             Editar
           </Link>
+
           <AlterarStatusButton pacienteId={id} statusAtual={paciente.status} />
         </div>
       </div>
@@ -239,13 +304,15 @@ export default async function PacienteDetailPage({ params }: Params) {
         }))}
         examesImagem={paciente.examesImagem.map((e) => ({
           id: e.id,
-          tipo: e.tipo,
-          descricao: e.descricao,
-          dataRealizacao: e.dataRealizacao?.toISOString() ?? null,
+          tipoExame: e.tipoExame,
+          tipo: e.tipoExame,
           sitio: e.sitio,
+          lateralidade: e.lateralidade,
           achados: e.achados,
-          linkTipo: e.linkTipo,
-          linkUrl: e.linkUrl,
+          laudo: e.laudo,
+          hospitalOrigem: e.hospitalOrigem,
+          data: e.data.toISOString(),
+          dataRealizacao: e.data.toISOString(),
         }))}
         diasInternado={diasInternado}
         idadePaciente={idadePaciente}

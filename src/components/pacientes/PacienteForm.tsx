@@ -77,12 +77,12 @@ type ExameImagem = {
   id?: string;
   tipo: string;
   lateralidade: string;
-  descricao: string;
   dataRealizacao: string;
   sitio: string;
   achados: string;
-  linkTipo: string;
-  linkUrl: string;
+  descricao: string; // armazenado no campo atual "descricao"; exibido como Laudo
+  linkTipo: string; // armazenado no campo atual "linkTipo"; exibido como Hospital de origem
+  linkUrl: string; // mantido para compatibilidade, não exibido no formulário
 };
 
 type ComorbidadesData = {
@@ -298,18 +298,19 @@ const PARECER_ESPECIALIDADES = [
 ];
 
 const TIPOS_EXAME = [
-  { value: "RX", label: "Radiografia" },
-  { value: "TC", label: "Tomografia" },
-  { value: "RM", label: "Ressonância" },
-  { value: "ECO", label: "Ecocardiograma" },
-  { value: "ECG", label: "ECG" },
-  { value: "OUTRO", label: "Outro" },
+  { value: "radiografia", label: "Radiografia (RX)" },
+  { value: "ecg", label: "Eletrocardiograma (ECG)" },
+  { value: "ecocardiograma", label: "Ecocardiograma" },
+  { value: "tomografia", label: "Tomografia Computadorizada (TC)" },
+  { value: "ressonancia", label: "Ressonância Magnética (RM)" },
+  { value: "ultrassonografia", label: "Ultrassonografia (USG)" },
+  { value: "outro", label: "Outro" },
 ];
 
-const LINK_TIPOS = [
-  { value: "WBSRAD", label: "WBSRAD" },
-  { value: "EPACS", label: "EPACS" },
-  { value: "EXTERNO", label: "Externo" },
+const HOSPITAIS_EXAMES = [
+  { value: "WBSRAD", label: "Hospital Memorial (WBSRad)" },
+  { value: "EPACS", label: "Walfredo Gurgel (EPACS)" },
+  { value: "EXTERNO", label: "Outro / Externo" },
 ];
 
 /* ============================================================================
@@ -891,13 +892,13 @@ export default function PacienteForm({ inicial, modo }: Props) {
       examesImagem: [
         ...form.examesImagem,
         {
-          tipo: "RX",
-          lateralidade: "",
+          tipo: "radiografia",
+          lateralidade: "nao_aplicavel",
           descricao: "",
           dataRealizacao: new Date().toISOString().split("T")[0],
           sitio: "",
           achados: "",
-          linkTipo: "",
+          linkTipo: "WBSRAD",
           linkUrl: "",
         },
       ],
@@ -2636,182 +2637,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
       </Card>
 
       {/* ================================================================
-          12. EXAMES DE IMAGEM
-      ================================================================ */}
-
-      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
-          <CardTitle className="text-sm font-semibold text-slate-800">
-            Exames de imagem
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent className="px-5 py-4 space-y-3">
-          {form.examesImagem.map((exame, idx) => (
-            <div key={idx} className="rounded-lg border border-slate-200 p-3">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-sm font-medium text-slate-600">
-                  Exame {idx + 1}
-                </span>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removerExameImagem(idx)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>Tipo</Label>
-
-                  <Select
-                    value={exame.tipo}
-                    onValueChange={(value) =>
-                      atualizarExameImagem(idx, "tipo", value ?? "")
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-
-                    <SelectContent>
-                      {TIPOS_EXAME.map((item) => (
-                        <SelectItem key={item.value} value={item.value}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label>Data</Label>
-
-                  <Input
-                    type="date"
-                    value={exame.dataRealizacao}
-                    onChange={(e) =>
-                      atualizarExameImagem(
-                        idx,
-                        "dataRealizacao",
-                        e.target.value,
-                      )
-                    }
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label>Sítio</Label>
-
-                  <Input
-                    value={exame.sitio}
-                    onChange={(e) =>
-                      atualizarExameImagem(idx, "sitio", e.target.value)
-                    }
-                    placeholder="Ex: joelho direito"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label>Lateralidade</Label>
-
-                  <Select
-                    value={exame.lateralidade}
-                    onValueChange={(value) =>
-                      atualizarExameImagem(idx, "lateralidade", value ?? "")
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecionar..." />
-                    </SelectTrigger>
-
-                    <SelectContent>
-                      <SelectItem value="direita">Direita</SelectItem>
-                      <SelectItem value="esquerda">Esquerda</SelectItem>
-                      <SelectItem value="bilateral">Bilateral</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Descrição</Label>
-
-                  <Input
-                    value={exame.descricao}
-                    onChange={(e) =>
-                      atualizarExameImagem(idx, "descricao", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Achados / laudo</Label>
-
-                  <Textarea
-                    value={exame.achados}
-                    onChange={(e) =>
-                      atualizarExameImagem(idx, "achados", e.target.value)
-                    }
-                    rows={3}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label>Origem/link</Label>
-
-                  <Select
-                    value={exame.linkTipo}
-                    onValueChange={(value) =>
-                      atualizarExameImagem(idx, "linkTipo", value ?? "")
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecionar..." />
-                    </SelectTrigger>
-
-                    <SelectContent>
-                      {LINK_TIPOS.map((item) => (
-                        <SelectItem key={item.value} value={item.value}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label>URL</Label>
-
-                  <Input
-                    value={exame.linkUrl}
-                    onChange={(e) =>
-                      atualizarExameImagem(idx, "linkUrl", e.target.value)
-                    }
-                    placeholder="https://..."
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={adicionarExameImagem}
-          >
-            <Plus className="mr-1.5 h-4 w-4" />
-            Adicionar exame
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* ================================================================
-          13. TRAUMA
+          12. TRAUMA
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -2868,7 +2694,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
       </Card>
 
       {/* ================================================================
-          14. PPS
+          13. PPS
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -2914,7 +2740,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
       </Card>
 
       {/* ================================================================
-          15. ALTA
+          14. ALTA
       ================================================================ */}
 
       {form.tipoStatus === "POS_OPERATORIO" && (
@@ -2990,7 +2816,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
       )}
 
       {/* ================================================================
-          16. CLÍNICA MÉDICA
+          15. CLÍNICA MÉDICA
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -3059,7 +2885,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
       </Card>
 
       {/* ================================================================
-      17. RISCO CIRÚRGICO
+      16. RISCO CIRÚRGICO
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -3273,7 +3099,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
       </Card>
 
       {/* ================================================================
-          18. FUNÇÃO RENAL
+          17. FUNÇÃO RENAL
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -3299,6 +3125,182 @@ export default function PacienteForm({ inicial, modo }: Props) {
               <SelectItem value="reduzida">Reduzida</SelectItem>
             </SelectContent>
           </Select>
+        </CardContent>
+      </Card>
+
+      {/* ================================================================
+          18. EXAMES DE IMAGEM
+      ================================================================ */}
+      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+          <CardTitle className="text-sm font-semibold text-slate-800">
+            Exames de imagem
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent className="px-5 py-4 space-y-3">
+          {form.examesImagem.map((exame, idx) => (
+            <div
+              key={idx}
+              className="rounded-xl border border-slate-200 p-4 bg-slate-50/50"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <span className="text-sm font-semibold text-slate-700">
+                  Exame {idx + 1}
+                </span>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removerExameImagem(idx)}
+                  className="text-slate-400 hover:text-red-600 hover:bg-red-50"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>Tipo de exame *</Label>
+
+                  <Select
+                    value={exame.tipo}
+                    onValueChange={(value) =>
+                      atualizarExameImagem(idx, "tipo", value ?? "")
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar..." />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {TIPOS_EXAME.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Data da realização *</Label>
+
+                  <Input
+                    type="date"
+                    value={exame.dataRealizacao}
+                    onChange={(e) =>
+                      atualizarExameImagem(
+                        idx,
+                        "dataRealizacao",
+                        e.target.value,
+                      )
+                    }
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Sítio / Região examinada *</Label>
+
+                  <Input
+                    value={exame.sitio}
+                    onChange={(e) =>
+                      atualizarExameImagem(idx, "sitio", e.target.value)
+                    }
+                    placeholder="Ex: joelho direito, tórax..."
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Lateralidade</Label>
+
+                  <Select
+                    value={exame.lateralidade}
+                    onValueChange={(value) =>
+                      atualizarExameImagem(
+                        idx,
+                        "lateralidade",
+                        value ?? "nao_aplicavel",
+                      )
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar..." />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      <SelectItem value="nao_aplicavel">
+                        Não se aplica
+                      </SelectItem>
+                      <SelectItem value="direita">Direita</SelectItem>
+                      <SelectItem value="esquerda">Esquerda</SelectItem>
+                      <SelectItem value="bilateral">Bilateral</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label>Achados</Label>
+
+                  <Textarea
+                    value={exame.achados}
+                    onChange={(e) =>
+                      atualizarExameImagem(idx, "achados", e.target.value)
+                    }
+                    rows={3}
+                    placeholder="Descreva os principais achados do exame..."
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label>Laudo</Label>
+
+                  <Textarea
+                    value={exame.descricao}
+                    onChange={(e) =>
+                      atualizarExameImagem(idx, "descricao", e.target.value)
+                    }
+                    rows={4}
+                    placeholder="Digite o laudo do exame..."
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label>Hospital de origem</Label>
+
+                  <Select
+                    value={exame.linkTipo}
+                    onValueChange={(value) =>
+                      atualizarExameImagem(idx, "linkTipo", value ?? "WBSRAD")
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar..." />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {HOSPITAIS_EXAMES.map((hospital) => (
+                        <SelectItem key={hospital.value} value={hospital.value}>
+                          {hospital.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={adicionarExameImagem}
+          >
+            <Plus className="mr-1.5 h-4 w-4" />
+            Adicionar exame
+          </Button>
         </CardContent>
       </Card>
 

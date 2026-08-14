@@ -13,20 +13,12 @@ export default async function EditarPacientePage({ params }: Params) {
 
   const { id } = await params;
 
+  // Removidos os includes de pareceres, culturas, fotos e examesImagem
+  // pois serão visualizados e alterados dentro das abas do paciente
   const paciente = await prisma.paciente.findUnique({
     where: { id },
     include: {
       cirurgias: true,
-      fotos: { orderBy: { createdAt: "asc" } },
-      pareceres: {
-        orderBy: { data: "desc" },
-      },
-      culturas: {
-        orderBy: { dataColeta: "desc" },
-      },
-      examesImagem: {
-        orderBy: { dataRealizacao: "desc" },
-      },
     },
   });
 
@@ -71,13 +63,6 @@ export default async function EditarPacientePage({ params }: Params) {
 
       <PacienteForm
         modo="editar"
-        fotosSalvas={paciente.fotos.map((f) => ({
-          id: f.id,
-          tipo: f.tipo,
-          url: f.url,
-          dataFoto: f.dataFoto?.toISOString() ?? null,
-          descricao: f.descricao,
-        }))}
         inicial={{
           id,
           nome: paciente.nome,
@@ -145,44 +130,20 @@ export default async function EditarPacientePage({ params }: Params) {
           traumaData: paciente.traumaData?.toISOString() || "",
           traumaTempo: paciente.traumaTempo || "",
 
+          // Adicionados novos campos mapeados a partir das mudanças no Schema
           cirurgias: paciente.cirurgias.map((c) => ({
             nomeCirurgia: c.nomeCirurgia,
             cirurgiao: c.cirurgiao,
             dataCirurgia: c.dataCirurgia.toISOString().split("T")[0],
             hospitalExterno: c.hospitalExterno || "",
+            diagnostico: c.diagnostico || "",
+            cid: c.cid || "",
+            intercorrencia: c.intercorrencia,
+            intercorrenciaDesc: c.intercorrenciaDesc || "",
           })),
 
-          pareceres: paciente.pareceres.map((p) => ({
-            id: p.id,
-            especialidade: p.especialidade,
-            data: p.data.toISOString().split("T")[0],
-            descricao: p.descricao,
-            medico: p.medico || "",
-          })),
-
-          culturas: paciente.culturas.map((c) => ({
-            id: c.id,
-            dataColeta: c.dataColeta.toISOString().split("T")[0],
-            sitio: c.sitio,
-            resultado: c.resultado || "",
-            dataResult: c.dataResult
-              ? c.dataResult.toISOString().split("T")[0]
-              : "",
-          })),
-
-          examesImagem: paciente.examesImagem.map((e) => ({
-            id: e.id,
-            tipo: e.tipo,
-            lateralidade: e.lateralidade || "",
-            descricao: e.descricao || "",
-            dataRealizacao: e.dataRealizacao
-              ? e.dataRealizacao.toISOString().split("T")[0]
-              : "",
-            sitio: e.sitio || "",
-            achados: e.achados || "",
-            linkTipo: e.linkTipo || "",
-            linkUrl: e.linkUrl || "",
-          })),
+          // Os campos 'pareceres', 'culturas' e 'examesImagem' foram propositalmente
+          // removidos desta inicialização.
         }}
       />
     </div>

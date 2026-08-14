@@ -227,20 +227,21 @@ model AuditLog {
 }
 
 model ExameImagem {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   pacienteId     String
-  tipo           String    // RX | TC | RM | ECO | ECG | OUTRO
-  lateralidade   String?
-  descricao      String?
-  dataRealizacao DateTime?
-  sitio          String?
-  achados        String?
-  linkTipo       String?   // WBSRAD | EPACS | EXTERNO
-  linkUrl        String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
 
-  paciente       Paciente  @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  data           DateTime
+  tipoExame      String
+  lateralidade   String   @default("nao_aplicavel")
+  sitio          String
+  achados        String?
+  laudo          String?
+  hospitalOrigem String   @default("memorial")
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  paciente       Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
 }
 
 model Configuracao {

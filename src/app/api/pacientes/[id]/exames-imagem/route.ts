@@ -30,23 +30,21 @@ export async function POST(req: NextRequest, { params }: Params) {
     const session = await getSessionFromRequest(req)
     if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-    // 3. Extrai "id" diretamente
     const { id } = await params
 
-    const { tipo, descricao, dataRealizacao, sitio, achados, linkTipo, linkUrl, lateralidade } = await req.json()
+    const { tipo, laudo, dataRealizacao, sitio, achados, linkTipo, lateralidade } = await req.json()
 
     try {
         const exame = await prisma.exameImagem.create({
             data: {
-                pacienteId: id, // 4. Vincula o pacienteId com a variável "id"
-                tipo: tipo || 'OUTRO',
-                lateralidade: lateralidade || null,
-                descricao: descricao || null,
-                dataRealizacao: dataRealizacao ? new Date(dataRealizacao) : null,
-                sitio: sitio || null,
+                pacienteId: id,
+                tipoExame: tipo || 'OUTRO',
+                lateralidade: lateralidade || 'nao_aplicavel',
+                laudo: laudo || null,
+                data: dataRealizacao ? new Date(dataRealizacao) : new Date(),
+                sitio: sitio || 'Não especificado',
                 achados: achados || null,
-                linkTipo: linkTipo || null,
-                linkUrl: linkUrl || null,
+                hospitalOrigem: linkTipo || 'memorial',
             },
         })
         return NextResponse.json(exame, { status: 201 })
@@ -91,16 +89,14 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const exame = await prisma.exameImagem.update({
         where: { id: exameId },
         data: {
-            tipo: body.tipo || 'OUTRO',
-            lateralidade: body.lateralidade || null,
-            descricao: body.descricao || null,
-            dataRealizacao: body.dataRealizacao
-                ? new Date(body.dataRealizacao)
-                : null,
-            sitio: body.sitio || null,
+            // AQUI: Mapeamento rigoroso para os nomes do schema.prisma
+            tipoExame: body.tipo || 'OUTRO',
+            lateralidade: body.lateralidade || 'nao_aplicavel',
+            laudo: body.laudo || null,
+            data: body.dataRealizacao ? new Date(body.dataRealizacao) : new Date(),
+            sitio: body.sitio || 'Não especificado',
             achados: body.achados || null,
-            linkTipo: body.linkTipo || null,
-            linkUrl: body.linkUrl || null,
+            hospitalOrigem: body.linkTipo || 'memorial',
         },
     })
 
