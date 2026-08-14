@@ -7,7 +7,6 @@ import {
   Trash2,
   Image as ImageIcon,
   ExternalLink,
-  Eye,
   X,
   Calendar,
   FileText,
@@ -41,14 +40,6 @@ const TIPOS_EXAME = [
   { value: "ressonancia", label: "Ressonância Magnética (RM)" },
   { value: "ultrassonografia", label: "Ultrassonografia (USG)" },
   { value: "outro", label: "Outro" },
-];
-
-const EXAMES_ALTA_COMPLEXIDADE = [
-  "ecg",
-  "ecocardiograma",
-  "tomografia",
-  "ressonancia",
-  "ultrassonografia",
 ];
 
 const HOSPITAIS_ORIGEM = [
@@ -118,7 +109,6 @@ export default function ExamesImagemTab({
     laudo: "",
     dataRealizacao: new Date().toISOString().slice(0, 10),
     sitio: "",
-    achados: "",
     linkTipo: "WBSRAD",
     linkUrl: "",
   };
@@ -155,17 +145,6 @@ export default function ExamesImagemTab({
         origem: "evolucao" as const,
       })),
   ].sort((a, b) => (b.data || "").localeCompare(a.data || ""));
-
-  const getTipo = (e: any) =>
-    (e.tipoExame || e.tipo_exame || e.tipo || "").toLowerCase();
-
-  const examesAltaComplexidade = exames.filter((e) =>
-    EXAMES_ALTA_COMPLEXIDADE.includes(getTipo(e)),
-  );
-
-  const examesSimples = exames.filter(
-    (e) => !EXAMES_ALTA_COMPLEXIDADE.includes(getTipo(e)),
-  );
 
   const substituirCategoria = (tipo: FotoTipo, novasFotos: FotoSalva[]) => {
     setFotos((atuais) => [
@@ -397,12 +376,12 @@ export default function ExamesImagemTab({
         />
       </div>
 
-      {/* 4. Exames de Alta Complexidade */}
+      {/* 4. Exames de Imagem (Laudos) */}
       <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-base font-semibold text-slate-800 flex items-center gap-2">
             <FileText className="w-5 h-5 text-slate-400" />
-            Exames de alta complexidade ({examesAltaComplexidade.length})
+            Exames de Imagem (Laudos) ({exames.length})
           </h3>
 
           <button
@@ -420,7 +399,8 @@ export default function ExamesImagemTab({
         </div>
 
         <p className="text-sm text-slate-500 mb-5">
-          ECG, ecocardiograma, tomografia, ressonância e ultrassonografia.
+          Radiografias, ECG, ecocardiograma, tomografia, ressonância,
+          ultrassonografia e outros exames.
         </p>
 
         {showForm && (
@@ -520,25 +500,6 @@ export default function ExamesImagemTab({
 
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Achados
-                </label>
-
-                <textarea
-                  className={textareaCls}
-                  rows={3}
-                  value={novo.achados}
-                  onChange={(e) =>
-                    setNovo((atual) => ({
-                      ...atual,
-                      achados: e.target.value,
-                    }))
-                  }
-                  placeholder="Descreva os principais achados..."
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Laudo
                 </label>
 
@@ -603,13 +564,13 @@ export default function ExamesImagemTab({
           </div>
         )}
 
-        {examesAltaComplexidade.length === 0 && !showForm ? (
+        {exames.length === 0 && !showForm ? (
           <p className="text-sm text-slate-400 py-2">
-            Nenhum exame de alta complexidade registrado.
+            Nenhum exame de imagem com laudo registrado.
           </p>
         ) : (
           <div className="space-y-3">
-            {examesAltaComplexidade.map((e) => {
+            {exames.map((e) => {
               const hospital = hospitalInfo(
                 e.hospitalOrigem || e.hospital_origem,
               );
@@ -650,18 +611,6 @@ export default function ExamesImagemTab({
                           </span>
                         )}
                       </div>
-
-                      {e.achados && (
-                        <div className="mt-2">
-                          <p className="text-xs font-semibold text-slate-500 mb-1">
-                            Achados
-                          </p>
-
-                          <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
-                            {e.achados}
-                          </p>
-                        </div>
-                      )}
 
                       {(e.laudo || e.descricao) && (
                         <div className="mt-3">
@@ -707,89 +656,6 @@ export default function ExamesImagemTab({
           </div>
         )}
       </div>
-
-      {/* 5. Exames de Imagem Simples */}
-      {examesSimples.length > 0 && (
-        <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <Eye className="w-4 h-4 text-slate-400" />
-
-            <h3 className="text-sm font-semibold text-slate-700">
-              Exames de imagem simples ({examesSimples.length})
-            </h3>
-          </div>
-
-          <div className="space-y-2">
-            {examesSimples.map((e) => {
-              const hosp = hospitalInfo(e.hospitalOrigem || e.hospital_origem);
-
-              return (
-                <div
-                  key={e.id}
-                  className="p-4 rounded-xl bg-slate-50 border border-slate-100"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium text-slate-700">
-                          {labelTipoExame(
-                            e.tipoExame || e.tipo_exame || e.tipo,
-                          )}
-                        </span>
-
-                        <span className="text-sm text-slate-600">
-                          {e.sitio}
-                        </span>
-
-                        {e.lateralidade &&
-                          e.lateralidade !== "nao_aplicavel" && (
-                            <span className="text-xs text-slate-500 capitalize">
-                              ({e.lateralidade})
-                            </span>
-                          )}
-
-                        <span className="text-xs text-slate-400">
-                          {formatarData(
-                            e.data || e.dataRealizacao || e.data_realizacao,
-                          )}
-                        </span>
-
-                        {hosp && (
-                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-white text-slate-500">
-                            {hosp.label}
-                          </span>
-                        )}
-                      </div>
-
-                      {e.achados && (
-                        <p className="text-sm text-slate-600 mt-1.5 leading-relaxed whitespace-pre-wrap">
-                          {e.achados}
-                        </p>
-                      )}
-
-                      {(e.laudo || e.descricao) && (
-                        <p className="text-sm text-slate-600 mt-2 leading-relaxed whitespace-pre-wrap">
-                          <span className="font-medium">Laudo: </span>
-                          {e.laudo || e.descricao}
-                        </p>
-                      )}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => removerExame(e.id)}
-                      className="text-slate-300 hover:text-red-500 p-1"
-                      title="Excluir exame"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* 6. Linha do Tempo de Curativos */}
       <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">

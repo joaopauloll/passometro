@@ -20,6 +20,7 @@ import {
   type ConfiguracaoPDF,
 } from "@/lib/pdfUtils";
 import AltaTab from "./AltaTab";
+import type { EvolucaoFormData } from "@/types";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -37,6 +38,56 @@ type Evolucao = {
   vhs: number | null;
   creatinina: number | null;
   ureia: number | null;
+  estavel?: boolean | null;
+  febre?: boolean | null;
+  semDor?: boolean | null;
+  dorControlada?: boolean | null;
+  diurese?: string | null;
+  ultimaEvacuacao?: string | null;
+  perfusaoPreservada?: boolean | null;
+  sensibilidadePreservada?: boolean | null;
+  movimentoPreservado?: boolean | null;
+  usaGesso?: boolean | null;
+  qualGesso?: string | null;
+  imobilizacaoTipos?: string[];
+  imobilizacaoLateralidade?: string | null;
+  possuiCurativo?: boolean | null;
+  curativoLimpo?: boolean | null;
+  secrecaoInfecciosa?: boolean | null;
+  secrecaoSanguinolenta?: boolean | null;
+  curativoLocal?: string | null;
+  curativoLateralidade?: string | null;
+  rxPosOpRealizado?: boolean | null;
+  rxSatisfatorio?: boolean | null;
+  rxEnviadoCirurgiao?: boolean | null;
+  deficitPrevio?: boolean | null;
+  movPosOp?: boolean | null;
+  sensPosOp?: boolean | null;
+  deficitNeurol?: string | null;
+  cardioPendente?: boolean | null;
+  cardiologistaLiberou?: boolean | null;
+  solicitouEco?: boolean | null;
+  ecoReady?: boolean | null;
+  necessitaUTI?: boolean | null;
+  culturasSolicitadas?: boolean | null;
+  culturasResultado?: boolean | null;
+  infectAvaliado?: boolean | null;
+  nomeInfectologista?: string | null;
+  antibioticoAtual?: string | null;
+  diaTratamento?: number | null;
+  antibioticosPrevios?: string | null;
+  lavCirurgicaRealizada?: boolean | null;
+  qtdLavagens?: number | null;
+  retirouImplante?: boolean | null;
+  outrasLesoes?: { osso: string; lado: string; incidencias: string }[];
+  acompClinico?: boolean | null;
+  nomeClinico?: string | null;
+  sentou?: boolean | null;
+  iniciouFisioterapia?: boolean | null;
+  dreno?: boolean | null;
+  drenoCm3?: number | null;
+  drenoAspecto?: string | null;
+  observacoes?: string | null;
   pendencias: {
     id: string;
     descricao: string;
@@ -89,7 +140,6 @@ export type ExameImagem = {
   tipoExame: string;
   sitio: string;
   lateralidade: string;
-  achados: string | null;
   laudo: string | null;
   hospitalOrigem: string;
   data: string;
@@ -117,6 +167,8 @@ type Paciente = {
   temInfeccao: boolean;
   temAlergia: boolean;
   traumaMecanismo: string | null;
+  historiaDoencaAtual: string | null;
+  houveTrauma: boolean;
   traumaData: string | null;
   traumaTempo: string | null;
   pps: number | null;
@@ -234,6 +286,7 @@ export default function PacienteDetailTabs(props: Props) {
           pacienteId={paciente.id}
           paciente={paciente}
           idadePaciente={idadePaciente}
+          pacienteTemInfeccao={paciente.temInfeccao}
         />
       )}
       {tab === "cirurgias" && (
@@ -257,7 +310,13 @@ export default function PacienteDetailTabs(props: Props) {
           evolucoes={evolucoes}
         />
       )}
-      {tab === "alta" && <AltaAba paciente={paciente} cirurgias={cirurgias} />}
+      {tab === "alta" && (
+        <AltaAba
+          paciente={paciente}
+          cirurgias={cirurgias}
+          evolucoes={evolucoes}
+        />
+      )}
       {tab === "pendencias" && (
         <PendenciasTab pendencias={pendencias} pacienteId={paciente.id} />
       )}
@@ -440,6 +499,20 @@ function ResumoTab({ paciente, evolucoes, cirurgias, cirurgioesList }: Props) {
 
       <ResumoSection title="História clínica">
         <div className="space-y-4">
+          {paciente.historiaDoencaAtual?.trim() && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
+                História da doença atual
+              </p>
+              <p className="text-sm text-slate-700 whitespace-pre-wrap">
+                {paciente.historiaDoencaAtual}
+              </p>
+              <p className="text-xs text-slate-500 mt-2">
+                Trauma: {paciente.houveTrauma ? "Sim" : "Não"}
+              </p>
+            </div>
+          )}
+
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">
               Comorbidades
@@ -483,6 +556,26 @@ function ResumoTab({ paciente, evolucoes, cirurgias, cirurgioesList }: Props) {
             </div>
           </div>
 
+          <div className="pt-3 border-t border-slate-100">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
+              Alergias
+            </p>
+            {paciente.temAlergia || paciente.alergias ? (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5">
+                <p className="text-sm font-semibold text-red-800">
+                  {paciente.alergias || "Alergia não especificada"}
+                </p>
+                <p className="text-xs text-red-600 mt-1">
+                  Confirmar antes de prescrever ou emitir medicamentos.
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400">
+                Nenhuma alergia registrada.
+              </p>
+            )}
+          </div>
+
           {paciente.medicacoes?.trim() && (
             <div className="pt-3 border-t border-slate-100">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
@@ -496,40 +589,41 @@ function ResumoTab({ paciente, evolucoes, cirurgias, cirurgioesList }: Props) {
         </div>
       </ResumoSection>
 
-      {paciente.traumaMecanismo && (
-        <ResumoSection title="Contexto do trauma">
-          <div className="space-y-3">
-            <div>
-              <p className="text-xs text-slate-400">Mecanismo</p>
-              <p className="text-sm font-medium text-slate-800 mt-0.5">
-                {paciente.traumaMecanismo}
-              </p>
-            </div>
+      {paciente.houveTrauma &&
+        (paciente.traumaData || paciente.traumaTempo) && (
+          <ResumoSection title="Contexto do trauma">
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs text-slate-400">Mecanismo</p>
+                <p className="text-sm font-medium text-slate-800 mt-0.5">
+                  {paciente.traumaMecanismo}
+                </p>
+              </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              {paciente.traumaData && (
-                <div>
-                  <p className="text-xs text-slate-400">Data</p>
-                  <p className="text-sm font-medium text-slate-800 mt-0.5">
-                    {format(new Date(paciente.traumaData), "dd/MM/yyyy", {
-                      locale: ptBR,
-                    })}
-                  </p>
-                </div>
-              )}
+              <div className="grid grid-cols-2 gap-3">
+                {paciente.traumaData && (
+                  <div>
+                    <p className="text-xs text-slate-400">Data</p>
+                    <p className="text-sm font-medium text-slate-800 mt-0.5">
+                      {format(new Date(paciente.traumaData), "dd/MM/yyyy", {
+                        locale: ptBR,
+                      })}
+                    </p>
+                  </div>
+                )}
 
-              {paciente.traumaTempo && (
-                <div>
-                  <p className="text-xs text-slate-400">Tempo de trauma</p>
-                  <p className="text-sm font-medium text-slate-800 mt-0.5">
-                    {paciente.traumaTempo}
-                  </p>
-                </div>
-              )}
+                {paciente.traumaTempo && (
+                  <div>
+                    <p className="text-xs text-slate-400">Tempo de trauma</p>
+                    <p className="text-sm font-medium text-slate-800 mt-0.5">
+                      {paciente.traumaTempo}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </ResumoSection>
-      )}
+          </ResumoSection>
+        )}
 
       {ultimaCirurgia && (
         <ResumoSection title="Situação cirúrgica">
@@ -719,11 +813,13 @@ function EvolucaoTab({
   pacienteId,
   paciente,
   idadePaciente,
+  pacienteTemInfeccao,
 }: {
   evolucoes: Evolucao[];
   pacienteId: string;
   paciente: Paciente;
   idadePaciente: number | null;
+  pacienteTemInfeccao: boolean;
 }) {
   const [showForm, setShowForm] = useState(false);
 
@@ -751,6 +847,10 @@ function EvolucaoTab({
           pacienteId={pacienteId}
           isPosOperatorio={paciente.tipoStatus === "POS_OPERATORIO"}
           idadePaciente={idadePaciente}
+          pacienteTemInfeccao={pacienteTemInfeccao}
+          initialData={
+            evolucoes[0] as unknown as Partial<EvolucaoFormData> | undefined
+          }
           nomePaciente={paciente.nome}
         />
       )}
@@ -1314,17 +1414,22 @@ function LaboratorioTab({
 function AltaAba({
   paciente,
   cirurgias,
+  evolucoes,
 }: {
   paciente: Paciente;
   cirurgias: Cirurgia[];
+  evolucoes: Evolucao[];
 }) {
   return (
     <div className="space-y-6">
-      <AltaTab paciente={paciente} cirurgias={cirurgias} />
+      <AltaTab
+        paciente={paciente}
+        cirurgias={cirurgias}
+        evolucoes={evolucoes}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Relatório */}
-        <Card>
+        {/* <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold">
               📄 Relatório Médico
@@ -1344,7 +1449,6 @@ function AltaAba({
           </CardContent>
         </Card>
 
-        {/* Calendário */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold">
@@ -1363,7 +1467,7 @@ function AltaAba({
               ⬇ Gerar Calendário
             </Link>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
     </div>
   );

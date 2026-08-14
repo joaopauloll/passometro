@@ -24,6 +24,7 @@ type Props = {
   pacienteId: string;
   evolucaoId?: string;
   initialData?: Partial<EvolucaoFormData>;
+  pacienteTemInfeccao?: boolean;
   isPosOperatorio: boolean;
   idadePaciente?: number | null;
   nomePaciente: string;
@@ -37,6 +38,7 @@ export default function EvolucaoForm({
   pacienteId,
   evolucaoId,
   initialData,
+  pacienteTemInfeccao = false,
   isPosOperatorio,
   idadePaciente,
   nomePaciente,
@@ -1289,174 +1291,176 @@ export default function EvolucaoForm({
           INFECÇÃO ORTOPÉDICA
       ==================================================================== */}
 
-      <Card className="overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm">
-        <CardHeader className="border-b border-slate-100 px-5 py-4">
-          <CardTitle className="text-sm font-medium uppercase tracking-wide text-red-600">
-            🦠 Infecção Ortopédica
-          </CardTitle>
-        </CardHeader>
+      {pacienteTemInfeccao && (
+        <Card className="overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm">
+          <CardHeader className="border-b border-slate-100 px-5 py-4">
+            <CardTitle className="text-sm font-medium uppercase tracking-wide text-red-600">
+              🦠 Infecção Ortopédica
+            </CardTitle>
+          </CardHeader>
 
-        <CardContent className="space-y-4 px-5 py-4">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {[
-              {
-                id: "leucocitos",
-                label: "Leucócitos (mil/µL)",
-                val: leucocitos,
-                set: setLeucocitos,
-                alerta: (v: string) => parseFloat(v) > 11,
-              },
-              {
-                id: "pcr",
-                label: "PCR (mg/L)",
-                val: pcr,
-                set: setPcr,
-                alerta: (v: string) => parseFloat(v) > 10,
-              },
-              {
-                id: "vhs",
-                label: "VHS (mm/h)",
-                val: vhs,
-                set: setVhs,
-                alerta: (v: string) => parseFloat(v) > 20,
-              },
-              {
-                id: "creatinina",
-                label: "Creatinina (mg/dL)",
-                val: creatinina,
-                set: setCreatinina,
-                alerta: (v: string) => parseFloat(v) > 1.2,
-              },
-              {
-                id: "ureia",
-                label: "Ureia (mg/dL)",
-                val: ureia,
-                set: setUreia,
-                alerta: (v: string) => parseFloat(v) > 50,
-              },
-            ].map((item) => (
-              <div key={item.id} className="space-y-1">
-                <Label className="text-xs text-gray-500">{item.label}</Label>
+          <CardContent className="space-y-4 px-5 py-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {[
+                {
+                  id: "leucocitos",
+                  label: "Leucócitos (mil/µL)",
+                  val: leucocitos,
+                  set: setLeucocitos,
+                  alerta: (v: string) => parseFloat(v) > 11,
+                },
+                {
+                  id: "pcr",
+                  label: "PCR (mg/L)",
+                  val: pcr,
+                  set: setPcr,
+                  alerta: (v: string) => parseFloat(v) > 10,
+                },
+                {
+                  id: "vhs",
+                  label: "VHS (mm/h)",
+                  val: vhs,
+                  set: setVhs,
+                  alerta: (v: string) => parseFloat(v) > 20,
+                },
+                {
+                  id: "creatinina",
+                  label: "Creatinina (mg/dL)",
+                  val: creatinina,
+                  set: setCreatinina,
+                  alerta: (v: string) => parseFloat(v) > 1.2,
+                },
+                {
+                  id: "ureia",
+                  label: "Ureia (mg/dL)",
+                  val: ureia,
+                  set: setUreia,
+                  alerta: (v: string) => parseFloat(v) > 50,
+                },
+              ].map((item) => (
+                <div key={item.id} className="space-y-1">
+                  <Label className="text-xs text-gray-500">{item.label}</Label>
+
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={item.val}
+                    onChange={(e) => item.set(e.target.value)}
+                    placeholder="–"
+                    className={`text-sm ${
+                      item.val && item.alerta(item.val) ? "border-red-400" : ""
+                    }`}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <Separator />
+
+            <SimNao
+              label="Culturas solicitadas?"
+              value={culturasSolicitadas}
+              onChange={setCulturasSolicitadas}
+            />
+
+            {culturasSolicitadas && (
+              <SimNao
+                label="Resultado disponível?"
+                value={culturasResultado}
+                onChange={setCulturasResultado}
+              />
+            )}
+
+            <Separator />
+
+            <SimNao
+              label="Avaliado pela infectologia?"
+              value={infectAvaliado}
+              onChange={setInfectAvaliado}
+            />
+
+            {infectAvaliado && (
+              <div className="space-y-1.5">
+                <Label className="text-sm">Nome do infectologista</Label>
+
+                <Input
+                  value={nomeInfectologista}
+                  onChange={(e) => setNomeInfectologista(e.target.value)}
+                  placeholder="Dr(a). nome"
+                  className="max-w-xs"
+                />
+              </div>
+            )}
+
+            <Separator />
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label className="text-sm">Antibiótico atual</Label>
+
+                <Input
+                  value={antibioticoAtual}
+                  onChange={(e) => setAntibioticoAtual(e.target.value)}
+                  placeholder="Ex: Vancomicina 1g"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-sm">Dia de tratamento</Label>
 
                 <Input
                   type="number"
-                  step="0.1"
-                  min="0"
-                  value={item.val}
-                  onChange={(e) => item.set(e.target.value)}
-                  placeholder="–"
-                  className={`text-sm ${
-                    item.val && item.alerta(item.val) ? "border-red-400" : ""
-                  }`}
+                  min="1"
+                  value={diaTratamento}
+                  onChange={(e) => setDiaTratamento(e.target.value)}
+                  placeholder="Ex: 5"
                 />
               </div>
-            ))}
-          </div>
 
-          <Separator />
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-sm">Antibióticos prévios</Label>
 
-          <SimNao
-            label="Culturas solicitadas?"
-            value={culturasSolicitadas}
-            onChange={setCulturasSolicitadas}
-          />
+                <Input
+                  value={antibioticosPrevios}
+                  onChange={(e) => setAntibioticosPrevios(e.target.value)}
+                  placeholder="Ex: Cefazolina 7 dias"
+                />
+              </div>
+            </div>
 
-          {culturasSolicitadas && (
+            <Separator />
+
             <SimNao
-              label="Resultado disponível?"
-              value={culturasResultado}
-              onChange={setCulturasResultado}
+              label="Lavagem cirúrgica realizada?"
+              value={lavCirurgicaRealizada}
+              onChange={setLavCirurgicaRealizada}
             />
-          )}
 
-          <Separator />
+            {lavCirurgicaRealizada && (
+              <div className="space-y-1.5">
+                <Label className="text-sm">Quantas lavagens?</Label>
 
-          <SimNao
-            label="Avaliado pela infectologia?"
-            value={infectAvaliado}
-            onChange={setInfectAvaliado}
-          />
+                <Input
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={qtdLavagens}
+                  onChange={(e) => setQtdLavagens(e.target.value)}
+                  placeholder="1"
+                  className="max-w-24"
+                />
+              </div>
+            )}
 
-          {infectAvaliado && (
-            <div className="space-y-1.5">
-              <Label className="text-sm">Nome do infectologista</Label>
-
-              <Input
-                value={nomeInfectologista}
-                onChange={(e) => setNomeInfectologista(e.target.value)}
-                placeholder="Dr(a). nome"
-                className="max-w-xs"
-              />
-            </div>
-          )}
-
-          <Separator />
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label className="text-sm">Antibiótico atual</Label>
-
-              <Input
-                value={antibioticoAtual}
-                onChange={(e) => setAntibioticoAtual(e.target.value)}
-                placeholder="Ex: Vancomicina 1g"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-sm">Dia de tratamento</Label>
-
-              <Input
-                type="number"
-                min="1"
-                value={diaTratamento}
-                onChange={(e) => setDiaTratamento(e.target.value)}
-                placeholder="Ex: 5"
-              />
-            </div>
-
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label className="text-sm">Antibióticos prévios</Label>
-
-              <Input
-                value={antibioticosPrevios}
-                onChange={(e) => setAntibioticosPrevios(e.target.value)}
-                placeholder="Ex: Cefazolina 7 dias"
-              />
-            </div>
-          </div>
-
-          <Separator />
-
-          <SimNao
-            label="Lavagem cirúrgica realizada?"
-            value={lavCirurgicaRealizada}
-            onChange={setLavCirurgicaRealizada}
-          />
-
-          {lavCirurgicaRealizada && (
-            <div className="space-y-1.5">
-              <Label className="text-sm">Quantas lavagens?</Label>
-
-              <Input
-                type="number"
-                min="1"
-                max="20"
-                value={qtdLavagens}
-                onChange={(e) => setQtdLavagens(e.target.value)}
-                placeholder="1"
-                className="max-w-24"
-              />
-            </div>
-          )}
-
-          <SimNao
-            label="Retirada do implante realizada?"
-            value={retirouImplante}
-            onChange={setRetirouImplante}
-          />
-        </CardContent>
-      </Card>
+            <SimNao
+              label="Retirada do implante realizada?"
+              value={retirouImplante}
+              onChange={setRetirouImplante}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* ====================================================================
           CLÍNICA MÉDICA

@@ -130,6 +130,9 @@ export default async function EditarPacientePage({ params }: Params) {
           compOutro: paciente.compOutro || "",
 
           traumaMecanismo: paciente.traumaMecanismo || "",
+          historiaDoencaAtual:
+            paciente.historiaDoencaAtual || paciente.traumaMecanismo || "",
+          houveTrauma: paciente.houveTrauma || Boolean(paciente.traumaData),
           traumaData: paciente.traumaData?.toISOString() || "",
           traumaTempo: paciente.traumaTempo || "",
 

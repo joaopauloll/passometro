@@ -3,6 +3,7 @@ import { getSessionFromCookies } from "@/lib/auth";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import EvolucaoForm from "@/components/evolucao/EvolucaoForm";
+import type { EvolucaoFormData } from "@/types";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -12,19 +13,38 @@ export default async function NovaEvolucaoPage({ params }: Params) {
 
   const { id } = await params;
 
-  const paciente = await prisma.paciente.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      nome: true,
-      tipoStatus: true,
-      dataNascimento: true,
-    },
-  });
+  const [paciente, ultimaEvolucao] = await Promise.all([
+    prisma.paciente.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        nome: true,
+        tipoStatus: true,
+        dataNascimento: true,
+        temInfeccao: true,
+      },
+    }),
+    prisma.evolucao.findFirst({
+      where: { pacienteId: id },
+      orderBy: { data: "desc" },
+    }),
+  ]);
 
   if (!paciente) notFound();
 
   const isPosOperatorio = paciente.tipoStatus === "POS_OPERATORIO";
+
+  const ultimaEvolucaoForm = ultimaEvolucao
+    ? ({
+        ...ultimaEvolucao,
+        imobilizacaoTipos: ultimaEvolucao.imobilizacaoTipos
+          ? JSON.parse(ultimaEvolucao.imobilizacaoTipos)
+          : [],
+        outrasLesoes: ultimaEvolucao.outrasLesoes
+          ? JSON.parse(ultimaEvolucao.outrasLesoes)
+          : [],
+      } as unknown as Partial<EvolucaoFormData>)
+    : undefined;
 
   let idadePaciente: number | null = null;
   if (paciente.dataNascimento) {
@@ -57,6 +77,8 @@ export default async function NovaEvolucaoPage({ params }: Params) {
         isPosOperatorio={isPosOperatorio}
         idadePaciente={idadePaciente}
         nomePaciente={paciente.nome}
+        pacienteTemInfeccao={paciente.temInfeccao}
+        initialData={ultimaEvolucaoForm}
       />
     </div>
   );

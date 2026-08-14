@@ -27,6 +27,16 @@ type Paciente = {
   tipoStatus: string;
   status: string;
   temInfeccao: boolean;
+  temAlergia: boolean;
+  alergias: string | null;
+  aguardaClinica: boolean;
+  riscoJson: string | null;
+  funcaoRenal: string | null;
+  compSolturaAssetica: boolean;
+  compLuxacao: boolean;
+  compFalhaImplante: boolean;
+  compPseudoartrose: boolean;
+  compOutro: string | null;
   dataNascimento: string | null;
   pendencias: {
     id: string;
@@ -58,6 +68,22 @@ export default function PacienteCard({ paciente, onStatusChange }: Props) {
   );
   const altaHoje = paciente.evolucoes[0]?.altaHoje === true;
   const altaPrevista = paciente.evolucoes[0]?.altaPrevista === true;
+  const riscoPendente = (() => {
+    if (!paciente.riscoJson) return false;
+    try {
+      const risco = JSON.parse(paciente.riscoJson) as { concluido?: boolean };
+      return risco.concluido === false;
+    } catch {
+      return false;
+    }
+  })();
+  const complicacoes = [
+    paciente.compSolturaAssetica && "Soltura asséptica",
+    paciente.compLuxacao && "Luxação",
+    paciente.compFalhaImplante && "Falha do implante",
+    paciente.compPseudoartrose && "Pseudoartrose",
+    paciente.compOutro,
+  ].filter((value): value is string => Boolean(value));
 
   const cirurgioes: string[] = (() => {
     try {
@@ -147,6 +173,45 @@ export default function PacienteCard({ paciente, onStatusChange }: Props) {
               {paciente.temInfeccao && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200/60">
                   <AlertTriangle className="w-3 h-3 text-rose-500" /> Infecção
+                </span>
+              )}
+
+              {(paciente.temAlergia || paciente.alergias) && (
+                <span
+                  title={paciente.alergias || "Alergia não especificada"}
+                  className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200"
+                >
+                  <AlertTriangle className="w-3 h-3 text-red-500" /> Alergia
+                </span>
+              )}
+
+              {paciente.aguardaClinica && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                  <Stethoscope className="w-3 h-3 text-amber-500" /> Aguarda
+                  clínica
+                </span>
+              )}
+
+              {riscoPendente && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
+                  <AlertTriangle className="w-3 h-3 text-orange-500" /> Risco
+                  pendente
+                </span>
+              )}
+
+              {paciente.funcaoRenal === "REDUZIDA" && (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">
+                  Função renal reduzida
+                </span>
+              )}
+
+              {complicacoes.length > 0 && (
+                <span
+                  title={complicacoes.join(", ")}
+                  className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200"
+                >
+                  <AlertTriangle className="w-3 h-3 text-rose-500" />{" "}
+                  Complicação
                 </span>
               )}
 

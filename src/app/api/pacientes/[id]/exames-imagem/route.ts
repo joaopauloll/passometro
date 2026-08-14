@@ -32,7 +32,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     const { id } = await params
 
-    const { tipo, laudo, dataRealizacao, sitio, achados, linkTipo, lateralidade } = await req.json()
+    const { tipo, laudo, dataRealizacao, sitio, linkTipo, lateralidade } = await req.json()
 
     try {
         const exame = await prisma.exameImagem.create({
@@ -43,7 +43,6 @@ export async function POST(req: NextRequest, { params }: Params) {
                 laudo: laudo || null,
                 data: dataRealizacao ? new Date(dataRealizacao) : new Date(),
                 sitio: sitio || 'Não especificado',
-                achados: achados || null,
                 hospitalOrigem: linkTipo || 'memorial',
             },
         })
@@ -95,7 +94,6 @@ export async function PUT(req: NextRequest, { params }: Params) {
             laudo: body.laudo || null,
             data: body.dataRealizacao ? new Date(body.dataRealizacao) : new Date(),
             sitio: body.sitio || 'Não especificado',
-            achados: body.achados || null,
             hospitalOrigem: body.linkTipo || 'memorial',
         },
     })

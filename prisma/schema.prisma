@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Paciente {
-  id                 String   @id @default(cuid())
+  id                 String    @id @default(cuid())
   nome               String
   leito              String
   registroHospitalar String
@@ -16,14 +16,14 @@ model Paciente {
   diagnostico        String
   cid                String?
   subespecialidade   String?
-  cirurgioes         String   @default("[]") // JSON array de strings
-  status             String   @default("INTERNADO") // INTERNADO | ALTA_ORTOPEDIA | ALTA_HOSPITALAR
-  tipoStatus         String   @default("PRE_OPERATORIO") // PRE_OPERATORIO | POS_OPERATORIO
+  cirurgioes         String    @default("[]") // JSON array de strings
+  status             String    @default("INTERNADO") // INTERNADO | ALTA_ORTOPEDIA | ALTA_HOSPITALAR
+  tipoStatus         String    @default("PRE_OPERATORIO") // PRE_OPERATORIO | POS_OPERATORIO
   comorbidades       String?
   medicacoes         String?
   alergias           String?
   dataNascimento     DateTime?
-  temInfeccao        Boolean  @default(false)
+  temInfeccao        Boolean   @default(false)
 
   // Complicações
   compSolturaAssetica Boolean @default(false)
@@ -32,65 +32,69 @@ model Paciente {
   compPseudoartrose   Boolean @default(false)
   compOutro           String?
 
-  // Trauma
+  // História da doença atual
+  historiaDoencaAtual String?
+  houveTrauma         Boolean @default(false)
+
+  // Campos legados de trauma, mantidos para histórico
   traumaMecanismo String?
   traumaData      DateTime?
   traumaTempo     String?
 
   // Novos campos estruturados
   cpf               String?
-  comorbidadesJson  String?  // JSON: {has,dm2,tabagismo,etilismo,avc,iam,drc,osteoporose,outros}
-  funcaoRenal       String?  // NORMAL | REDUZIDA
-  prevCirurgiasOrto Boolean  @default(false)
-  prevCirurgiasJson String?  // JSON array: [{nome,quando,cirurgiao}]
-  temAlergia        Boolean  @default(false)
-  medicamentosJson  String?  // JSON array: [{codigo,dataUltimoUso}]
+  comorbidadesJson  String? // JSON: {has,dm2,tabagismo,etilismo,avc,iam,drc,osteoporose,outros}
+  funcaoRenal       String? // NORMAL | REDUZIDA
+  prevCirurgiasOrto Boolean @default(false)
+  prevCirurgiasJson String? // JSON array: [{nome,quando,cirurgiao}]
+  temAlergia        Boolean @default(false)
+  medicamentosJson  String? // JSON array: [{codigo,dataUltimoUso}]
   hemoglobinaAdm    Float?
   plaquetasAdm      Float?
   inrAdm            Float?
   pps               Int?
-  infeccaoJson      String?  // JSON: {febre,antibiotico,inicio,antibioticoPrevio,culturas,culturasResult,dreno}
+  infeccaoJson      String? // JSON: {febre,antibiotico,inicio,antibioticoPrevio,culturas,culturasResult,dreno}
 
   // Alta e follow-up
-  altaOrtopediaData   DateTime?
-  altaHospitalarData  DateTime?
-  previsaoAltaOrto    String?   // ex: "2 dias após cirurgia"
+  altaOrtopediaData  DateTime?
+  altaHospitalarData DateTime?
+  previsaoAltaOrto   String? // ex: "2 dias após cirurgia"
 
   // Clínica médica
-  clinicaMedico    String?
-  aguardaClinica   Boolean  @default(false)
+  clinicaMedico  String?
+  aguardaClinica Boolean @default(false)
 
   // Risco cirúrgico
-  riscoJson        String?  // JSON: {concluido,data,cardiologista,nivel,indicaUTI,...}
-  ecocardiogramaData         DateTime?
-  ecocardiogramaResultado    String?
-  ecgData                    DateTime?
-  ecgResultado               String?
+  riscoJson               String? // JSON: {concluido,data,cardiologista,nivel,indicaUTI,...}
+  ecocardiogramaData      DateTime?
+  ecocardiogramaResultado String?
+  ecgData                 DateTime?
+  ecgResultado            String?
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  cirurgias  Cirurgia[]
-  evolucoes  Evolucao[]
-  pendencias Pendencia[]
-  fotos      Foto[]
-  pareceres  Parecer[]
-  culturas   Cultura[]
+  cirurgias    Cirurgia[]
+  evolucoes    Evolucao[]
+  pendencias   Pendencia[]
+  fotos        Foto[]
+  pareceres    Parecer[]
+  culturas     Cultura[]
   examesImagem ExameImagem[]
 }
 
 model Cirurgia {
-  id              String   @id @default(cuid())
-  pacienteId      String
-  nomeCirurgia    String
-  cirurgiao       String
-  dataCirurgia    DateTime
-  hospitalExterno String?
-  diagnostico     String?
-  cid             String?
-  intercorrencia  Boolean  @default(false)
+  id                 String   @id @default(cuid())
+  pacienteId         String
+  nomeCirurgia       String
+  cirurgiao          String
+  dataCirurgia       DateTime
+  hospitalExterno    String?
+  diagnostico        String?
+  cid                String?
+  intercorrencia     Boolean  @default(false)
   intercorrenciaDesc String?
-  createdAt       DateTime @default(now())
+  createdAt          DateTime @default(now())
 
   paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
 }
@@ -101,9 +105,9 @@ model Evolucao {
   data       DateTime @default(now())
 
   // Estado geral
-  estavel  Boolean?
-  febre    Boolean?
-  semDor   Boolean?
+  estavel       Boolean?
+  febre         Boolean?
+  semDor        Boolean?
   dorControlada Boolean?
 
   // Eliminações
@@ -116,9 +120,9 @@ model Evolucao {
   movimentoPreservado     Boolean?
 
   // Imobilização
-  usaGesso  Boolean?
-  qualGesso String?
-  imobilizacaoTipos       String?  // JSON array: ['gesso','tala','tipoia',...]
+  usaGesso                 Boolean?
+  qualGesso                String?
+  imobilizacaoTipos        String? // JSON array: ['gesso','tala','tipoia',...]
   imobilizacaoLateralidade String? // direita | esquerda | bilateral
 
   // Curativo
@@ -127,12 +131,12 @@ model Evolucao {
   secrecaoInfecciosa    Boolean?
   secrecaoSanguinolenta Boolean?
   curativoLocal         String?
-  curativoLateralidade  String?  // direita | esquerda | bilateral
+  curativoLateralidade  String? // direita | esquerda | bilateral
 
   // Pós-operatório
-  rxPosOpRealizado     Boolean?
-  rxSatisfatorio       Boolean?
-  rxEnviadoCirurgiao   Boolean?
+  rxPosOpRealizado   Boolean?
+  rxSatisfatorio     Boolean?
+  rxEnviadoCirurgiao Boolean?
 
   // Avaliação neurológica pós-op
   movPosOp      Boolean?
@@ -154,21 +158,21 @@ model Evolucao {
   inr         Float?
 
   // Infecção ortopédica
-  leucocitos           Float?
-  pcr                  Float?
-  vhs                  Float?
-  creatinina           Float?
-  ureia                Float?
-  culturasSolicitadas  Boolean?
-  culturasResultado    Boolean?
-  infectAvaliado       Boolean?
-  nomeInfectologista   String?
-  antibioticoAtual     String?
-  diaTratamento        Int?
-  antibioticosPrevios  String?
+  leucocitos            Float?
+  pcr                   Float?
+  vhs                   Float?
+  creatinina            Float?
+  ureia                 Float?
+  culturasSolicitadas   Boolean?
+  culturasResultado     Boolean?
+  infectAvaliado        Boolean?
+  nomeInfectologista    String?
+  antibioticoAtual      String?
+  diaTratamento         Int?
+  antibioticosPrevios   String?
   lavCirurgicaRealizada Boolean?
-  qtdLavagens          Int?
-  retirouImplante      Boolean?
+  qtdLavagens           Int?
+  retirouImplante       Boolean?
 
   // Avaliação de outras lesões (JSON array de {osso, lado, incidencias})
   outrasLesoes String?
@@ -178,14 +182,14 @@ model Evolucao {
   nomeClinico  String?
 
   // Alta
-  altaPrevista Boolean?
-  altaHoje     Boolean?
-  chkReceita   Boolean @default(false)
-  chkRelatorio Boolean @default(false)
-  chkOrientacoes Boolean @default(false)
-  chkAtestado  Boolean @default(false)
-  chkRetorno   Boolean @default(false)
-  chkRX        Boolean @default(false)
+  altaPrevista   Boolean?
+  altaHoje       Boolean?
+  chkReceita     Boolean  @default(false)
+  chkRelatorio   Boolean  @default(false)
+  chkOrientacoes Boolean  @default(false)
+  chkAtestado    Boolean  @default(false)
+  chkRetorno     Boolean  @default(false)
+  chkRX          Boolean  @default(false)
 
   // Reabilitação pós-op
   sentou              Boolean?
@@ -227,21 +231,20 @@ model AuditLog {
 }
 
 model ExameImagem {
-  id             String   @id @default(cuid())
-  pacienteId     String
+  id         String @id @default(cuid())
+  pacienteId String
 
   data           DateTime
   tipoExame      String
   lateralidade   String   @default("nao_aplicavel")
   sitio          String
-  achados        String?
   laudo          String?
   hospitalOrigem String   @default("memorial")
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  paciente       Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
 }
 
 model Configuracao {
@@ -256,16 +259,16 @@ model Configuracao {
 }
 
 model Foto {
-  id         String    @id @default(cuid())
-  pacienteId String
-  tipo       String    // RADIOGRAFIA | LESAO_PELE | CURATIVO
-  lateralidade   String?
-  url        String
-  dataFoto   DateTime?
-  descricao  String?
-  createdAt  DateTime  @default(now())
+  id           String    @id @default(cuid())
+  pacienteId   String
+  tipo         String // RADIOGRAFIA | LESAO_PELE | CURATIVO
+  lateralidade String?
+  url          String
+  dataFoto     DateTime?
+  descricao    String?
+  createdAt    DateTime  @default(now())
 
-  paciente   Paciente  @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
 }
 
 model Parecer {
@@ -278,7 +281,7 @@ model Parecer {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  paciente      Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
 }
 
 model Cultura {
@@ -291,44 +294,44 @@ model Cultura {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  paciente   Paciente  @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  paciente Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
 }
 
 model ModeloAlta {
-  id                     String   @id @default(cuid())
-  especialidade          String
-  cirurgiao              String
-  nomeCirurgia           String
+  id            String @id @default(cuid())
+  especialidade String
+  cirurgiao     String
+  nomeCirurgia  String
 
   // Recomendações (salvas como JSON string contendo os booleans e textos)
   // { podePisar, podeDobrarJoelho, podeSentar, podeTrocarCurativo, podeRetirarSuturas, podeDeitarLado, podeFazerFisioterapia, fisioterapiaRecomendacoes }
-  recomendacoesJson      String?  
+  recomendacoesJson String?
 
   // Textos de Orientações
-  comoTrocarCurativo     String?
-  sinaisAlarme           String?
+  comoTrocarCurativo String?
+  sinaisAlarme       String?
 
   // Retorno Ambulatorial
-  retornoDias            Int?     @default(30)
-  retornoTelefone        String?
-  retornoEndereco        String?  @default("Ambulatório do Hospital Memorial")
-  retornoCep             String?
+  retornoDias     Int?    @default(30)
+  retornoTelefone String?
+  retornoEndereco String? @default("Ambulatório do Hospital Memorial")
+  retornoCep      String?
 
   // Prescrição
   // Array JSON de medicamentos selecionados: ["Dipirona 1g — 6/6h...", "Tramadol 50mg..."]
-  prescricaoMedicamentos String?  
-  prescricaoTexto        String?  
+  prescricaoMedicamentos String?
+  prescricaoTexto        String?
 
   // Órtese
-  orteseTipo             String?  @default("Nenhuma")
-  orteseInstrucoes       String?
+  orteseTipo       String? @default("Nenhuma")
+  orteseInstrucoes String?
 
   // Laudos e Atestados
-  laudoTexto             String?  
-  atestadoTexto          String?  
+  laudoTexto    String?
+  atestadoTexto String?
 
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([cirurgiao, nomeCirurgia])
 }

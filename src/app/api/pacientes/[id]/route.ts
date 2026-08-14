@@ -55,6 +55,8 @@ export async function PUT(req: NextRequest, { params }: Params) {
                 comorbidades: pacienteData.comorbidades || null,
                 medicacoes: pacienteData.medicacoes || null,
                 alergias: pacienteData.alergias || null,
+                historiaDoencaAtual: pacienteData.historiaDoencaAtual || pacienteData.traumaMecanismo || null,
+                houveTrauma: Boolean(pacienteData.houveTrauma ?? pacienteData.traumaData),
                 dataNascimento: pacienteData.dataNascimento ? new Date(pacienteData.dataNascimento) : null,
                 temInfeccao: Boolean(pacienteData.temInfeccao),
                 compSolturaAssetica: Boolean(pacienteData.compSolturaAssetica),

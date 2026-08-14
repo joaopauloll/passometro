@@ -92,6 +92,8 @@ export async function POST(req: NextRequest) {
                 comorbidades: pacienteData.comorbidades || null,
                 medicacoes: pacienteData.medicacoes || null,
                 alergias: pacienteData.alergias || null,
+                historiaDoencaAtual: pacienteData.historiaDoencaAtual || pacienteData.traumaMecanismo || null,
+                houveTrauma: Boolean(pacienteData.houveTrauma ?? pacienteData.traumaData),
                 dataNascimento: pacienteData.dataNascimento ? new Date(pacienteData.dataNascimento) : null,
                 temInfeccao: Boolean(pacienteData.temInfeccao),
                 compSolturaAssetica: Boolean(pacienteData.compSolturaAssetica),
@@ -137,22 +139,22 @@ export async function POST(req: NextRequest) {
                         create: cirurgiasData.map((c: {
                             nomeCirurgia: string
                             cirurgiao: string
-                        dataCirurgia: string
-                        hospitalExterno?: string
-                        diagnostico?: string
-                        cid?: string
-                        intercorrencia?: boolean
-                        intercorrenciaDesc?: string
-                    }) => ({
-                        nomeCirurgia: c.nomeCirurgia,
-                        cirurgiao: c.cirurgiao,
-                        dataCirurgia: new Date(c.dataCirurgia),
-                        hospitalExterno: c.hospitalExterno || null,
-                        diagnostico: c.diagnostico || null,
-                        cid: c.cid || null,
-                        intercorrencia: Boolean(c.intercorrencia),
-                        intercorrenciaDesc: c.intercorrenciaDesc || null,
-                    })),
+                            dataCirurgia: string
+                            hospitalExterno?: string
+                            diagnostico?: string
+                            cid?: string
+                            intercorrencia?: boolean
+                            intercorrenciaDesc?: string
+                        }) => ({
+                            nomeCirurgia: c.nomeCirurgia,
+                            cirurgiao: c.cirurgiao,
+                            dataCirurgia: new Date(c.dataCirurgia),
+                            hospitalExterno: c.hospitalExterno || null,
+                            diagnostico: c.diagnostico || null,
+                            cid: c.cid || null,
+                            intercorrencia: Boolean(c.intercorrencia),
+                            intercorrenciaDesc: c.intercorrenciaDesc || null,
+                        })),
                     },
                 }),
             },

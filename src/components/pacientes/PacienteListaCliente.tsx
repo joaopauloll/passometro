@@ -18,6 +18,16 @@ type Paciente = {
   tipoStatus: string;
   status: string;
   temInfeccao: boolean;
+  temAlergia: boolean;
+  alergias: string | null;
+  aguardaClinica: boolean;
+  riscoJson: string | null;
+  funcaoRenal: string | null;
+  compSolturaAssetica: boolean;
+  compLuxacao: boolean;
+  compFalhaImplante: boolean;
+  compPseudoartrose: boolean;
+  compOutro: string | null;
   dataNascimento: string | null;
   pendencias: {
     id: string;

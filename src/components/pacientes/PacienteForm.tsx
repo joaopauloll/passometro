@@ -176,6 +176,8 @@ type FormValues = {
   compOutro: string;
 
   traumaMecanismo: string;
+  historiaDoencaAtual: string;
+  houveTrauma: boolean;
   traumaData: string;
   traumaTempo: string;
 
@@ -551,6 +553,9 @@ export default function PacienteForm({ inicial, modo }: Props) {
 
     compOutro: inicial?.compOutro || "",
 
+    historiaDoencaAtual:
+      inicial?.historiaDoencaAtual || inicial?.traumaMecanismo || "",
+    houveTrauma: inicial?.houveTrauma ?? Boolean(inicial?.traumaData),
     traumaMecanismo: inicial?.traumaMecanismo || "",
 
     traumaData: inicial?.traumaData?.split?.("T")?.[0] || "",
@@ -1204,7 +1209,11 @@ export default function PacienteForm({ inicial, modo }: Props) {
 
         alergias: alergiasFinal,
 
+        historiaDoencaAtual: form.historiaDoencaAtual || null,
+        houveTrauma: form.houveTrauma,
+
         traumaData: form.traumaData || null,
+        traumaTempo: form.houveTrauma ? form.traumaTempo || null : null,
 
         comorbidadesJson: JSON.stringify(comorbidadesJson),
 
@@ -2389,46 +2398,46 @@ export default function PacienteForm({ inicial, modo }: Props) {
               {/* A coleta e o resultado detalhados são gerenciados pela aba Laboratório após o cadastro. */}
               {modo === "criar" && (
                 <div className="space-y-3">
-                <label className="flex cursor-pointer items-center gap-2">
-                  <Checkbox
-                    checked={form.infeccaoJson.culturas}
-                    onCheckedChange={(value) =>
-                      setInfeccao("culturas", Boolean(value))
-                    }
-                  />
-
-                  <span className="text-sm font-medium">
-                    Cultura coletada/solicitada
-                  </span>
-                </label>
-
-                {form.infeccaoJson.culturas ? (
-                  <div className="space-y-1.5">
-                    <Label>Resultado da cultura</Label>
-
-                    <Input
-                      value={form.infeccaoJson.culturasResult || ""}
-                      onChange={(e) =>
-                        setInfeccao("culturasResult", e.target.value)
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <Checkbox
+                      checked={form.infeccaoJson.culturas}
+                      onCheckedChange={(value) =>
+                        setInfeccao("culturas", Boolean(value))
                       }
-                      placeholder="Ex: Staphylococcus aureus"
                     />
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                    <span className="mt-0.5 text-amber-600">⚠</span>
 
-                    <div>
-                      <p className="text-xs font-medium text-amber-800">
-                        Cultura pendente
-                      </p>
+                    <span className="text-sm font-medium">
+                      Cultura coletada/solicitada
+                    </span>
+                  </label>
 
-                      <p className="mt-0.5 text-xs text-amber-700">
-                        Pendência: solicitar culturas na abordagem cirúrgica.
-                      </p>
+                  {form.infeccaoJson.culturas ? (
+                    <div className="space-y-1.5">
+                      <Label>Resultado da cultura</Label>
+
+                      <Input
+                        value={form.infeccaoJson.culturasResult || ""}
+                        onChange={(e) =>
+                          setInfeccao("culturasResult", e.target.value)
+                        }
+                        placeholder="Ex: Staphylococcus aureus"
+                      />
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                      <span className="mt-0.5 text-amber-600">⚠</span>
+
+                      <div>
+                        <p className="text-xs font-medium text-amber-800">
+                          Cultura pendente
+                        </p>
+
+                        <p className="mt-0.5 text-xs text-amber-700">
+                          Pendência: solicitar culturas na abordagem cirúrgica.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -2473,252 +2482,268 @@ export default function PacienteForm({ inicial, modo }: Props) {
       {modo === "criar" && (
         <>
           <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
-          <CardTitle className="text-sm font-semibold text-slate-800">
-            Culturas
-          </CardTitle>
-        </CardHeader>
+            <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+              <CardTitle className="text-sm font-semibold text-slate-800">
+                Culturas
+              </CardTitle>
+            </CardHeader>
 
-        <CardContent className="px-5 py-4 space-y-3">
-          {form.culturas.map((cultura, idx) => (
-            <div key={idx} className="rounded-lg border border-slate-200 p-3">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-sm font-medium text-slate-600">
-                  Cultura {idx + 1}
-                </span>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removerCultura(idx)}
+            <CardContent className="px-5 py-4 space-y-3">
+              {form.culturas.map((cultura, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-lg border border-slate-200 p-3"
                 >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-600">
+                      Cultura {idx + 1}
+                    </span>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>Data da coleta</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removerCultura(idx)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
 
-                  <Input
-                    type="date"
-                    value={cultura.dataColeta}
-                    onChange={(e) =>
-                      atualizarCultura(idx, "dataColeta", e.target.value)
-                    }
-                  />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label>Data da coleta</Label>
+
+                      <Input
+                        type="date"
+                        value={cultura.dataColeta}
+                        onChange={(e) =>
+                          atualizarCultura(idx, "dataColeta", e.target.value)
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label>Sítio</Label>
+
+                      <Input
+                        value={cultura.sitio}
+                        onChange={(e) =>
+                          atualizarCultura(idx, "sitio", e.target.value)
+                        }
+                        placeholder="Ex: secreção profunda"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label>Resultado</Label>
+
+                      <Input
+                        value={cultura.resultado}
+                        onChange={(e) =>
+                          atualizarCultura(idx, "resultado", e.target.value)
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label>Data do resultado</Label>
+
+                      <Input
+                        type="date"
+                        value={cultura.dataResult}
+                        onChange={(e) =>
+                          atualizarCultura(idx, "dataResult", e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
                 </div>
+              ))}
 
-                <div className="space-y-1.5">
-                  <Label>Sítio</Label>
-
-                  <Input
-                    value={cultura.sitio}
-                    onChange={(e) =>
-                      atualizarCultura(idx, "sitio", e.target.value)
-                    }
-                    placeholder="Ex: secreção profunda"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label>Resultado</Label>
-
-                  <Input
-                    value={cultura.resultado}
-                    onChange={(e) =>
-                      atualizarCultura(idx, "resultado", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label>Data do resultado</Label>
-
-                  <Input
-                    type="date"
-                    value={cultura.dataResult}
-                    onChange={(e) =>
-                      atualizarCultura(idx, "dataResult", e.target.value)
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={adicionarCultura}
-          >
-            <Plus className="mr-1.5 h-4 w-4" />
-            Adicionar cultura
-          </Button>
-        </CardContent>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={adicionarCultura}
+              >
+                <Plus className="mr-1.5 h-4 w-4" />
+                Adicionar cultura
+              </Button>
+            </CardContent>
           </Card>
 
-      {/* ================================================================
+          {/* ================================================================
           11. PARECERES
       ================================================================ */}
 
           <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
-          <CardTitle className="text-sm font-semibold text-slate-800">
-            Pareceres de especialidades
-          </CardTitle>
-        </CardHeader>
+            <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+              <CardTitle className="text-sm font-semibold text-slate-800">
+                Pareceres de especialidades
+              </CardTitle>
+            </CardHeader>
 
-        <CardContent className="px-5 py-4 space-y-3">
-          {form.pareceres.map((parecer, idx) => (
-            <div key={idx} className="rounded-lg border border-slate-200 p-3">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-sm font-medium text-slate-600">
-                  Parecer {idx + 1}
-                </span>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removerParecer(idx)}
+            <CardContent className="px-5 py-4 space-y-3">
+              {form.pareceres.map((parecer, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-lg border border-slate-200 p-3"
                 >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-600">
+                      Parecer {idx + 1}
+                    </span>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>Especialidade</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removerParecer(idx)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
 
-                  <Select
-                    value={parecer.especialidade}
-                    onValueChange={(value) =>
-                      atualizarParecer(idx, "especialidade", value ?? "")
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecionar..." />
-                    </SelectTrigger>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label>Especialidade</Label>
 
-                    <SelectContent>
-                      {PARECER_ESPECIALIDADES.map((item) => (
-                        <SelectItem key={item} value={item}>
-                          {item}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                      <Select
+                        value={parecer.especialidade}
+                        onValueChange={(value) =>
+                          atualizarParecer(idx, "especialidade", value ?? "")
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar..." />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                          {PARECER_ESPECIALIDADES.map((item) => (
+                            <SelectItem key={item} value={item}>
+                              {item}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label>Data</Label>
+
+                      <Input
+                        type="date"
+                        value={parecer.data}
+                        onChange={(e) =>
+                          atualizarParecer(idx, "data", e.target.value)
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label>Médico</Label>
+
+                      <Input
+                        value={parecer.medico}
+                        onChange={(e) =>
+                          atualizarParecer(idx, "medico", e.target.value)
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label>Parecer</Label>
+
+                      <Textarea
+                        value={parecer.descricao}
+                        onChange={(e) =>
+                          atualizarParecer(idx, "descricao", e.target.value)
+                        }
+                        rows={3}
+                      />
+                    </div>
+                  </div>
                 </div>
+              ))}
 
-                <div className="space-y-1.5">
-                  <Label>Data</Label>
-
-                  <Input
-                    type="date"
-                    value={parecer.data}
-                    onChange={(e) =>
-                      atualizarParecer(idx, "data", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label>Médico</Label>
-
-                  <Input
-                    value={parecer.medico}
-                    onChange={(e) =>
-                      atualizarParecer(idx, "medico", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Parecer</Label>
-
-                  <Textarea
-                    value={parecer.descricao}
-                    onChange={(e) =>
-                      atualizarParecer(idx, "descricao", e.target.value)
-                    }
-                    rows={3}
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={adicionarParecer}
-          >
-            <Plus className="mr-1.5 h-4 w-4" />
-            Adicionar parecer
-          </Button>
-        </CardContent>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={adicionarParecer}
+              >
+                <Plus className="mr-1.5 h-4 w-4" />
+                Adicionar parecer
+              </Button>
+            </CardContent>
           </Card>
         </>
       )}
 
       {/* ================================================================
-          12. TRAUMA
-      ================================================================ */}
+          12. HISTÓRIA DA DOENÇA ATUAL
+        ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
           <CardTitle className="text-sm font-semibold text-slate-800">
-            Trauma
+            História da Doença Atual
           </CardTitle>
         </CardHeader>
 
         <CardContent className="px-5 py-4 grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
-            <Label>Mecanismo do trauma</Label>
+            <Label>História da doença atual</Label>
 
-            <Input
-              value={form.traumaMecanismo}
+            <Textarea
+              rows={4}
+              value={form.historiaDoencaAtual}
               onChange={(e) =>
                 setForm({
                   ...form,
-                  traumaMecanismo: e.target.value,
+                  historiaDoencaAtual: e.target.value,
                 })
               }
+              placeholder="Descreva o início, evolução e contexto clínico atual..."
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Data do trauma</Label>
-
-            <Input
-              type="date"
-              value={form.traumaData}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  traumaData: e.target.value,
-                })
-              }
+          <div className="sm:col-span-2">
+            <SimNao
+              label="Houve trauma?"
+              value={form.houveTrauma}
+              onChange={(value) => setForm({ ...form, houveTrauma: value })}
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Tempo do trauma</Label>
+          {form.houveTrauma && (
+            <>
+              <div className="space-y-1.5">
+                <Label>Data do trauma</Label>
 
-            <Input
-              value={form.traumaTempo}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  traumaTempo: e.target.value,
-                })
-              }
-            />
-          </div>
+                <Input
+                  type="date"
+                  value={form.traumaData}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      traumaData: e.target.value,
+                      traumaTempo: e.target.value
+                        ? `${differenceInDays(new Date(), new Date(`${e.target.value}T00:00:00`))} dias`
+                        : "",
+                    })
+                  }
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Tempo do trauma</Label>
+                <p className="text-sm text-slate-700 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                  {form.traumaTempo || "Informe a data do trauma"}
+                </p>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -3162,176 +3187,179 @@ export default function PacienteForm({ inicial, modo }: Props) {
       ================================================================ */}
       {modo === "criar" && (
         <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
-          <CardTitle className="text-sm font-semibold text-slate-800">
-            Exames de imagem
-          </CardTitle>
-        </CardHeader>
+          <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+            <CardTitle className="text-sm font-semibold text-slate-800">
+              Exames de imagem
+            </CardTitle>
+          </CardHeader>
 
-        <CardContent className="px-5 py-4 space-y-3">
-          {form.examesImagem.map((exame, idx) => (
-            <div
-              key={idx}
-              className="rounded-xl border border-slate-200 p-4 bg-slate-50/50"
+          <CardContent className="px-5 py-4 space-y-3">
+            {form.examesImagem.map((exame, idx) => (
+              <div
+                key={idx}
+                className="rounded-xl border border-slate-200 p-4 bg-slate-50/50"
+              >
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-slate-700">
+                    Exame {idx + 1}
+                  </span>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removerExameImagem(idx)}
+                    className="text-slate-400 hover:text-red-600 hover:bg-red-50"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label>Tipo de exame *</Label>
+
+                    <Select
+                      value={exame.tipo}
+                      onValueChange={(value) =>
+                        atualizarExameImagem(idx, "tipo", value ?? "")
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar..." />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        {TIPOS_EXAME.map((item) => (
+                          <SelectItem key={item.value} value={item.value}>
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Data da realização *</Label>
+
+                    <Input
+                      type="date"
+                      value={exame.dataRealizacao}
+                      onChange={(e) =>
+                        atualizarExameImagem(
+                          idx,
+                          "dataRealizacao",
+                          e.target.value,
+                        )
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Sítio / Região examinada *</Label>
+
+                    <Input
+                      value={exame.sitio}
+                      onChange={(e) =>
+                        atualizarExameImagem(idx, "sitio", e.target.value)
+                      }
+                      placeholder="Ex: joelho direito, tórax..."
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Lateralidade</Label>
+
+                    <Select
+                      value={exame.lateralidade}
+                      onValueChange={(value) =>
+                        atualizarExameImagem(
+                          idx,
+                          "lateralidade",
+                          value ?? "nao_aplicavel",
+                        )
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar..." />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        <SelectItem value="nao_aplicavel">
+                          Não se aplica
+                        </SelectItem>
+                        <SelectItem value="direita">Direita</SelectItem>
+                        <SelectItem value="esquerda">Esquerda</SelectItem>
+                        <SelectItem value="bilateral">Bilateral</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label>Achados</Label>
+
+                    <Textarea
+                      value={exame.achados}
+                      onChange={(e) =>
+                        atualizarExameImagem(idx, "achados", e.target.value)
+                      }
+                      rows={3}
+                      placeholder="Descreva os principais achados do exame..."
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label>Laudo</Label>
+
+                    <Textarea
+                      value={exame.laudo}
+                      onChange={(e) =>
+                        atualizarExameImagem(idx, "laudo", e.target.value)
+                      }
+                      rows={4}
+                      placeholder="Digite o laudo do exame..."
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label>Hospital de origem</Label>
+
+                    <Select
+                      value={exame.linkTipo}
+                      onValueChange={(value) =>
+                        atualizarExameImagem(idx, "linkTipo", value ?? "WBSRAD")
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar..." />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        {HOSPITAIS_EXAMES.map((hospital) => (
+                          <SelectItem
+                            key={hospital.value}
+                            value={hospital.value}
+                          >
+                            {hospital.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={adicionarExameImagem}
             >
-              <div className="mb-4 flex items-center justify-between">
-                <span className="text-sm font-semibold text-slate-700">
-                  Exame {idx + 1}
-                </span>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removerExameImagem(idx)}
-                  className="text-slate-400 hover:text-red-600 hover:bg-red-50"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>Tipo de exame *</Label>
-
-                  <Select
-                    value={exame.tipo}
-                    onValueChange={(value) =>
-                      atualizarExameImagem(idx, "tipo", value ?? "")
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecionar..." />
-                    </SelectTrigger>
-
-                    <SelectContent>
-                      {TIPOS_EXAME.map((item) => (
-                        <SelectItem key={item.value} value={item.value}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label>Data da realização *</Label>
-
-                  <Input
-                    type="date"
-                    value={exame.dataRealizacao}
-                    onChange={(e) =>
-                      atualizarExameImagem(
-                        idx,
-                        "dataRealizacao",
-                        e.target.value,
-                      )
-                    }
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label>Sítio / Região examinada *</Label>
-
-                  <Input
-                    value={exame.sitio}
-                    onChange={(e) =>
-                      atualizarExameImagem(idx, "sitio", e.target.value)
-                    }
-                    placeholder="Ex: joelho direito, tórax..."
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label>Lateralidade</Label>
-
-                  <Select
-                    value={exame.lateralidade}
-                    onValueChange={(value) =>
-                      atualizarExameImagem(
-                        idx,
-                        "lateralidade",
-                        value ?? "nao_aplicavel",
-                      )
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecionar..." />
-                    </SelectTrigger>
-
-                    <SelectContent>
-                      <SelectItem value="nao_aplicavel">
-                        Não se aplica
-                      </SelectItem>
-                      <SelectItem value="direita">Direita</SelectItem>
-                      <SelectItem value="esquerda">Esquerda</SelectItem>
-                      <SelectItem value="bilateral">Bilateral</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Achados</Label>
-
-                  <Textarea
-                    value={exame.achados}
-                    onChange={(e) =>
-                      atualizarExameImagem(idx, "achados", e.target.value)
-                    }
-                    rows={3}
-                    placeholder="Descreva os principais achados do exame..."
-                  />
-                </div>
-
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Laudo</Label>
-
-                  <Textarea
-                    value={exame.laudo}
-                    onChange={(e) =>
-                      atualizarExameImagem(idx, "laudo", e.target.value)
-                    }
-                    rows={4}
-                    placeholder="Digite o laudo do exame..."
-                  />
-                </div>
-
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Hospital de origem</Label>
-
-                  <Select
-                    value={exame.linkTipo}
-                    onValueChange={(value) =>
-                      atualizarExameImagem(idx, "linkTipo", value ?? "WBSRAD")
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecionar..." />
-                    </SelectTrigger>
-
-                    <SelectContent>
-                      {HOSPITAIS_EXAMES.map((hospital) => (
-                        <SelectItem key={hospital.value} value={hospital.value}>
-                          {hospital.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={adicionarExameImagem}
-          >
-            <Plus className="mr-1.5 h-4 w-4" />
-            Adicionar exame
-          </Button>
-        </CardContent>
+              <Plus className="mr-1.5 h-4 w-4" />
+              Adicionar exame
+            </Button>
+          </CardContent>
         </Card>
       )}
 

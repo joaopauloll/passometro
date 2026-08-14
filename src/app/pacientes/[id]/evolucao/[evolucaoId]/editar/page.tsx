@@ -7,6 +7,14 @@ import type { EvolucaoFormData } from "@/types";
 
 type Params = { params: Promise<{ id: string; evolucaoId: string }> };
 
+function normalizarLateralidade(
+  value: string | null,
+): "direita" | "esquerda" | "bilateral" | undefined {
+  return value === "direita" || value === "esquerda" || value === "bilateral"
+    ? value
+    : undefined;
+}
+
 export default async function EditarEvolucaoPage({ params }: Params) {
   const session = await getSessionFromCookies();
   if (!session) redirect("/login");
@@ -69,14 +77,19 @@ export default async function EditarEvolucaoPage({ params }: Params) {
       <EvolucaoForm
         pacienteId={id}
         evolucaoId={evolucaoId}
-        initialData={{
-          ...evolucao,
-          outrasLesoes,
-          imobilizacaoTipos,
-          imobilizacaoLateralidade:
-            evolucao.imobilizacaoLateralidade ?? undefined,
-          curativoLateralidade: evolucao.curativoLateralidade ?? undefined,
-        }}
+        initialData={
+          {
+            ...evolucao,
+            outrasLesoes,
+            imobilizacaoTipos,
+            imobilizacaoLateralidade: normalizarLateralidade(
+              evolucao.imobilizacaoLateralidade,
+            ),
+            curativoLateralidade: normalizarLateralidade(
+              evolucao.curativoLateralidade,
+            ),
+          } as Partial<EvolucaoFormData>
+        }
         isPosOperatorio={isPosOperatorio}
         idadePaciente={idadePaciente}
         nomePaciente={paciente.nome}
