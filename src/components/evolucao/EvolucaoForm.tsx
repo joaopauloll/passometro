@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { startTransition, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -23,6 +23,7 @@ import type { EvolucaoFormData } from "@/types";
 type Props = {
   pacienteId: string;
   evolucaoId?: string;
+  initialData?: Partial<EvolucaoFormData>;
   isPosOperatorio: boolean;
   idadePaciente?: number | null;
   nomePaciente: string;
@@ -35,6 +36,7 @@ type Props = {
 export default function EvolucaoForm({
   pacienteId,
   evolucaoId,
+  initialData,
   isPosOperatorio,
   idadePaciente,
   nomePaciente,
@@ -42,7 +44,6 @@ export default function EvolucaoForm({
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
-  const [textoPreview, setTextoPreview] = useState("");
 
   /* ==========================================================================
    * ESTADO GERAL
@@ -53,10 +54,6 @@ export default function EvolucaoForm({
   const [febre, setFebre] = useState(false);
   const [semDor, setSemDor] = useState(true);
   const [dorControlada, setDorControlada] = useState(true);
-
-  /* ==========================================================================
-   * ELIMINAÇÕES
-   * ======================================================================== */
 
   const [diurese, setDiurese] = useState<"espontanea" | "svd" | "anurico" | "">(
     "espontanea",
@@ -284,9 +281,90 @@ export default function EvolucaoForm({
 
   const [observacoes, setObservacoes] = useState("");
 
+  useEffect(() => {
+    if (!initialData) return;
+
+    startTransition(() => {
+      setEstavel(initialData.estavel ?? true);
+      setFebre(initialData.febre ?? false);
+      setSemDor(initialData.semDor ?? true);
+      setDorControlada(initialData.dorControlada ?? true);
+      setDiurese(initialData.diurese ?? "espontanea");
+      setUltimaEvacuacao(initialData.ultimaEvacuacao ?? "");
+      setPerfusao(initialData.perfusaoPreservada ?? true);
+      setSensibilidade(initialData.sensibilidadePreservada ?? true);
+      setMovimento(initialData.movimentoPreservado ?? true);
+      setImobTipos(
+        initialData.imobilizacaoTipos ??
+          (initialData.usaGesso ? ["gesso"] : []),
+      );
+      setImobLateralidade(initialData.imobilizacaoLateralidade ?? "");
+      setUsaGesso(initialData.usaGesso ?? false);
+      setQualGesso(initialData.qualGesso ?? "");
+      setPossuiCurativo(initialData.possuiCurativo ?? false);
+      setCurativoLimpo(initialData.curativoLimpo ?? true);
+      setSecInfecciosa(initialData.secrecaoInfecciosa ?? false);
+      setSecSanguinolenta(initialData.secrecaoSanguinolenta ?? false);
+      setCurativoLocal(initialData.curativoLocal ?? "");
+      setCurativoLateralidade(initialData.curativoLateralidade ?? "");
+      setRxRealizado(initialData.rxPosOpRealizado ?? false);
+      setRxSatisfatorio(initialData.rxSatisfatorio ?? true);
+      setRxEnviado(initialData.rxEnviadoCirurgiao ?? true);
+      setSentou(initialData.sentou ?? true);
+      setIniciouFisioterapia(initialData.iniciouFisioterapia ?? true);
+      setDreno(initialData.dreno ?? false);
+      setDrenoCm3(initialData.drenoCm3?.toString() ?? "");
+      setDrenoAspecto(initialData.drenoAspecto ?? "");
+      setDeficitPrevio(initialData.deficitPrevio ?? false);
+      setMovPosOp(initialData.movPosOp ?? true);
+      setSensPosOp(initialData.sensPosOp ?? true);
+      setDeficitNeurol(initialData.deficitNeurol ?? "igual");
+      setCardioPendente(initialData.cardioPendente ?? false);
+      setCardiologistaLiberou(initialData.cardiologistaLiberou ?? true);
+      setSolicitouEco(initialData.solicitouEco ?? false);
+      setEcoReady(initialData.ecoReady ?? true);
+      setNecessitaUTI(initialData.necessitaUTI ?? false);
+      setHemoglobina(initialData.hemoglobina?.toString() ?? "");
+      setPlaquetas(initialData.plaquetas?.toString() ?? "");
+      setInr(initialData.inr?.toString() ?? "");
+      setLeucocitos(initialData.leucocitos?.toString() ?? "");
+      setPcr(initialData.pcr?.toString() ?? "");
+      setVhs(initialData.vhs?.toString() ?? "");
+      setCreatinina(initialData.creatinina?.toString() ?? "");
+      setUreia(initialData.ureia?.toString() ?? "");
+      setCulturasSolicitadas(initialData.culturasSolicitadas ?? false);
+      setCulturasResultado(initialData.culturasResultado ?? true);
+      setInfectAvaliado(initialData.infectAvaliado ?? true);
+      setNomeInfectologista(initialData.nomeInfectologista ?? "");
+      setAntibioticoAtual(initialData.antibioticoAtual ?? "");
+      setDiaTratamento(initialData.diaTratamento?.toString() ?? "");
+      setAntibioticosPrevios(initialData.antibioticosPrevios ?? "");
+      setLavCirurgicaRealizada(initialData.lavCirurgicaRealizada ?? false);
+      setQtdLavagens(initialData.qtdLavagens?.toString() ?? "");
+      setRetirouImplante(initialData.retirouImplante ?? true);
+      setOutrasLesoes(
+        initialData.outrasLesoes?.length
+          ? initialData.outrasLesoes
+          : [{ osso: "", lado: "", incidencias: "" }],
+      );
+      setTemOutrasLesoes(Boolean(initialData.outrasLesoes?.length));
+      setAcompClinico(initialData.acompClinico ?? false);
+      setNomeClinico(initialData.nomeClinico ?? "");
+      setAltaPrevista(initialData.altaPrevista ?? true);
+      setAltaHoje(initialData.altaHoje ?? false);
+      setChkReceita(initialData.chkReceita ?? false);
+      setChkRelatorio(initialData.chkRelatorio ?? false);
+      setChkOrientacoes(initialData.chkOrientacoes ?? false);
+      setChkAtestado(initialData.chkAtestado ?? false);
+      setChkRetorno(initialData.chkRetorno ?? false);
+      setChkRX(initialData.chkRX ?? false);
+      setObservacoes(initialData.observacoes ?? "");
+    });
+  }, [initialData]);
+
   /* ==========================================================================
    * DADOS DA EVOLUÇÃO
-   * ======================================================================== */
+   * ========================================================================== */
 
   const getDados = useCallback(
     (): EvolucaoFormData => ({
@@ -294,21 +372,22 @@ export default function EvolucaoForm({
       febre,
       semDor,
       dorControlada,
-
       diurese: diurese || undefined,
       ultimaEvacuacao: ultimaEvacuacao || undefined,
-
       perfusaoPreservada: perfusao,
       sensibilidadePreservada: sensibilidade,
       movimentoPreservado: movimento,
-
       usaGesso,
       qualGesso: qualGesso || undefined,
+      imobilizacaoTipos: imobTipos,
+      imobilizacaoLateralidade: imobLateralidade || undefined,
 
       possuiCurativo,
       curativoLimpo,
       secrecaoInfecciosa: secInfecciosa,
       secrecaoSanguinolenta: secSanguinolenta,
+      curativoLocal: curativoLocal || undefined,
+      curativoLateralidade: curativoLateralidade || undefined,
 
       rxPosOpRealizado: rxRealizado,
       rxSatisfatorio,
@@ -401,9 +480,13 @@ export default function EvolucaoForm({
       usaGesso,
       qualGesso,
       possuiCurativo,
+      imobTipos,
+      imobLateralidade,
       curativoLimpo,
       secInfecciosa,
       secSanguinolenta,
+      curativoLocal,
+      curativoLateralidade,
       rxRealizado,
       rxSatisfatorio,
       rxEnviado,
@@ -455,21 +538,15 @@ export default function EvolucaoForm({
     ],
   );
 
-  /* ==========================================================================
+  /* ============================================================================
    * PREVIEW
-   * ======================================================================== */
+   * ========================================================================== */
 
-  useEffect(() => {
-    const dados = getDados();
-
-    const texto = gerarTextoEvolucao(
-      dados,
-      isPosOperatorio,
-      idadePaciente ?? undefined,
-    );
-
-    setTextoPreview(texto);
-  }, [getDados, isPosOperatorio, idadePaciente]);
+  const textoPreview = gerarTextoEvolucao(
+    getDados(),
+    isPosOperatorio,
+    idadePaciente ?? undefined,
+  );
 
   const pendenciasPreview = useCallback(() => {
     return gerarPendencias(
@@ -619,7 +696,7 @@ export default function EvolucaoForm({
 
           <div className="space-y-1.5">
             <Label htmlFor="evacuacao" className="text-sm">
-              Última evacuação (ex: "há 2 dias")
+              Última evacuação (ex: &quot;há 2 dias&quot;)
             </Label>
 
             <Input

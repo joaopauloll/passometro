@@ -7,6 +7,7 @@ import { ptBR } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PendenciasTab from "@/components/pendencias/PendenciasTab";
 import EvolucoesList from "@/components/evolucao/EvolucoesList";
+import EvolucaoForm from "@/components/evolucao/EvolucaoForm";
 import ExamesImagemTab from "@/components/pacientes/ExamesImagemTab";
 import {
   gerarPrescricaoPDF,
@@ -228,7 +229,12 @@ export default function PacienteDetailTabs(props: Props) {
       {/* Tab content */}
       {tab === "resumo" && <ResumoTab {...props} />}
       {tab === "evolucoes" && (
-        <EvolucaoTab evolucoes={evolucoes} pacienteId={paciente.id} />
+        <EvolucaoTab
+          evolucoes={evolucoes}
+          pacienteId={paciente.id}
+          paciente={paciente}
+          idadePaciente={idadePaciente}
+        />
       )}
       {tab === "cirurgias" && (
         <CirurgiasTab cirurgias={cirurgias} pacienteId={paciente.id} />
@@ -711,20 +717,43 @@ function ResumoTab({ paciente, evolucoes, cirurgias, cirurgioesList }: Props) {
 function EvolucaoTab({
   evolucoes,
   pacienteId,
+  paciente,
+  idadePaciente,
 }: {
   evolucoes: Evolucao[];
   pacienteId: string;
+  paciente: Paciente;
+  idadePaciente: number | null;
 }) {
+  const [showForm, setShowForm] = useState(false);
+
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
-        <Link
-          href={`/pacientes/${pacienteId}/evolucao/nova`}
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-700">
+            Evoluções clínicas
+          </h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Registre a evolução do dia e acompanhe o histórico do paciente.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowForm((current) => !current)}
           className="inline-flex items-center gap-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
         >
-          + Nova Evolução
-        </Link>
+          {showForm ? "Fechar formulário" : "+ Nova evolução"}
+        </button>
       </div>
+      {showForm && (
+        <EvolucaoForm
+          pacienteId={pacienteId}
+          isPosOperatorio={paciente.tipoStatus === "POS_OPERATORIO"}
+          idadePaciente={idadePaciente}
+          nomePaciente={paciente.nome}
+        />
+      )}
       <EvolucoesList evolucoes={evolucoes} pacienteId={pacienteId} />
     </div>
   );

@@ -39,12 +39,16 @@ export interface EvolucaoFormData {
     // Imobilização
     usaGesso?: boolean
     qualGesso?: string
+    imobilizacaoTipos?: string[]
+    imobilizacaoLateralidade?: 'direita' | 'esquerda' | 'bilateral'
 
     // Curativo
     possuiCurativo?: boolean
     curativoLimpo?: boolean
     secrecaoInfecciosa?: boolean
     secrecaoSanguinolenta?: boolean
+    curativoLocal?: string
+    curativoLateralidade?: 'direita' | 'esquerda' | 'bilateral'
 
     // Pós-operatório
     rxPosOpRealizado?: boolean
