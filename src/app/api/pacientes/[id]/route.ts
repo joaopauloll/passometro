@@ -68,6 +68,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
                 // Novos campos
                 cpf: pacienteData.cpf || null,
                 comorbidadesJson: pacienteData.comorbidadesJson || null,
+                funcaoRenal: pacienteData.funcaoRenal || null,
                 prevCirurgiasOrto: Boolean(pacienteData.prevCirurgiasOrto),
                 prevCirurgiasJson: pacienteData.prevCirurgiasJson || null,
                 temAlergia: Boolean(pacienteData.temAlergia),
@@ -107,12 +108,20 @@ export async function PUT(req: NextRequest, { params }: Params) {
                         cirurgiao: string
                         dataCirurgia: string
                         hospitalExterno?: string
+                        diagnostico?: string
+                        cid?: string
+                        intercorrencia?: boolean
+                        intercorrenciaDesc?: string
                     }) => ({
                         pacienteId: id,
                         nomeCirurgia: c.nomeCirurgia,
                         cirurgiao: c.cirurgiao,
                         dataCirurgia: new Date(c.dataCirurgia),
                         hospitalExterno: c.hospitalExterno || null,
+                        diagnostico: c.diagnostico || null,
+                        cid: c.cid || null,
+                        intercorrencia: Boolean(c.intercorrencia),
+                        intercorrenciaDesc: c.intercorrenciaDesc || null,
                     })),
                 })
             }

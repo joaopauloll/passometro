@@ -40,6 +40,7 @@ model Paciente {
   // Novos campos estruturados
   cpf               String?
   comorbidadesJson  String?  // JSON: {has,dm2,tabagismo,etilismo,avc,iam,drc,osteoporose,outros}
+  funcaoRenal       String?  // NORMAL | REDUZIDA
   prevCirurgiasOrto Boolean  @default(false)
   prevCirurgiasJson String?  // JSON array: [{nome,quando,cirurgiao}]
   temAlergia        Boolean  @default(false)
@@ -76,7 +77,6 @@ model Paciente {
   pareceres  Parecer[]
   culturas   Cultura[]
   examesImagem ExameImagem[]
-  funcaoRenal String? // NORMAL | REDUZIDA
 }
 
 model Cirurgia {

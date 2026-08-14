@@ -13,8 +13,8 @@ export default async function EditarPacientePage({ params }: Params) {
 
   const { id } = await params;
 
-  // Removidos os includes de pareceres, culturas, fotos e examesImagem
-  // pois serão visualizados e alterados dentro das abas do paciente
+  // Relações gerenciadas pelas abas (pareceres, culturas, fotos e exames de
+  // imagem) não são carregadas no formulário de edição.
   const paciente = await prisma.paciente.findUnique({
     where: { id },
     include: {
@@ -26,7 +26,10 @@ export default async function EditarPacientePage({ params }: Params) {
 
   const cirurgioes: string[] = (() => {
     try {
-      return JSON.parse(paciente.cirurgioes);
+      const nomes = JSON.parse(paciente.cirurgioes);
+      return Array.isArray(nomes)
+        ? nomes.filter((nome): nome is string => typeof nome === "string")
+        : [""];
     } catch {
       return [""];
     }
@@ -79,6 +82,7 @@ export default async function EditarPacientePage({ params }: Params) {
 
           comorbidades: paciente.comorbidades || "",
           comorbidadesJson: paciente.comorbidadesJson ?? undefined,
+          funcaoRenal: paciente.funcaoRenal,
 
           prevCirurgiasOrto: paciente.prevCirurgiasOrto,
           prevCirurgiasJson: paciente.prevCirurgiasJson ?? undefined,
@@ -86,7 +90,6 @@ export default async function EditarPacientePage({ params }: Params) {
           medicacoes: paciente.medicacoes || "",
           medicamentosJson: paciente.medicamentosJson ?? undefined,
 
-          // NOVO
           medicamentosComuns,
           medicamentosOutros,
 
@@ -130,7 +133,6 @@ export default async function EditarPacientePage({ params }: Params) {
           traumaData: paciente.traumaData?.toISOString() || "",
           traumaTempo: paciente.traumaTempo || "",
 
-          // Adicionados novos campos mapeados a partir das mudanças no Schema
           cirurgias: paciente.cirurgias.map((c) => ({
             nomeCirurgia: c.nomeCirurgia,
             cirurgiao: c.cirurgiao,
@@ -141,9 +143,6 @@ export default async function EditarPacientePage({ params }: Params) {
             intercorrencia: c.intercorrencia,
             intercorrenciaDesc: c.intercorrenciaDesc || "",
           })),
-
-          // Os campos 'pareceres', 'culturas' e 'examesImagem' foram propositalmente
-          // removidos desta inicialização.
         }}
       />
     </div>

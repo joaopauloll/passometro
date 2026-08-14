@@ -28,7 +28,7 @@ import {
 } from "@/lib/medicamentos";
 
 import CirurgiaoMultiSelect from "@/components/pacientes/CirurgiaoMultiSelect";
-import FotoUpload, { FotoPendente, FotoSalva } from "@/components/FotoUpload";
+import FotoUpload, { FotoPendente } from "@/components/FotoUpload";
 
 /* ============================================================================
  * TIPOS
@@ -80,9 +80,8 @@ type ExameImagem = {
   dataRealizacao: string;
   sitio: string;
   achados: string;
-  descricao: string; // armazenado no campo atual "descricao"; exibido como Laudo
-  linkTipo: string; // armazenado no campo atual "linkTipo"; exibido como Hospital de origem
-  linkUrl: string; // mantido para compatibilidade, não exibido no formulário
+  laudo: string;
+  linkTipo: string;
 };
 
 type ComorbidadesData = {
@@ -182,6 +181,7 @@ type FormValues = {
 
   cirurgias: Cirurgia[];
 
+  // Usados somente durante a criação; depois são gerenciados nas abas.
   pareceres: Parecer[];
   culturas: Cultura[];
   examesImagem: ExameImagem[];
@@ -377,6 +377,30 @@ function parseSafe<T>(json: string | undefined | null, fallback: T): T {
   }
 }
 
+function normalizarFuncaoRenal(
+  valor: string | null | undefined,
+): ComorbidadesData["funcaoRenal"] | undefined {
+  if (valor === "REDUZIDA" || valor === "reduzida") return "reduzida";
+  if (valor === "NORMAL" || valor === "normal") return "normal";
+  return undefined;
+}
+
+function obterComorbidadesIniciais(
+  json: string | undefined,
+  funcaoRenal: string | null | undefined,
+): ComorbidadesData {
+  const dados = parseSafe<Partial<ComorbidadesData>>(json, {});
+
+  return {
+    ...DEFAULT_COMORBIDADES,
+    ...dados,
+    funcaoRenal:
+      normalizarFuncaoRenal(funcaoRenal) ??
+      normalizarFuncaoRenal(dados.funcaoRenal) ??
+      DEFAULT_COMORBIDADES.funcaoRenal,
+  };
+}
+
 /* ============================================================================
  * PROPS
  * ========================================================================== */
@@ -399,6 +423,7 @@ type InitialValues = Omit<
   prevCirurgiasJson?: string;
   medicamentosJson?: string;
   riscoJson?: string;
+  funcaoRenal?: string | null;
 
   hemoglobinaAdm?: number | string | null;
   plaquetasAdm?: number | string | null;
@@ -408,16 +433,12 @@ type InitialValues = Omit<
   altaOrtopediaData?: string | null;
   altaHospitalarData?: string | null;
 
-  pareceres?: Parecer[];
-  culturas?: Cultura[];
-  examesImagem?: ExameImagem[];
   cirurgias?: Cirurgia[];
 };
 
 type Props = {
   inicial?: InitialValues;
   modo: "criar" | "editar";
-  fotosSalvas?: FotoSalva[];
 };
 
 /* ============================================================================
@@ -469,9 +490,9 @@ export default function PacienteForm({ inicial, modo }: Props) {
 
     comorbidades: inicial?.comorbidades || "",
 
-    comorbidadesJson: parseSafe<ComorbidadesData>(
+    comorbidadesJson: obterComorbidadesIniciais(
       inicial?.comorbidadesJson,
-      DEFAULT_COMORBIDADES,
+      inicial?.funcaoRenal,
     ),
 
     prevCirurgiasOrto: inicial?.prevCirurgiasOrto || false,
@@ -538,11 +559,11 @@ export default function PacienteForm({ inicial, modo }: Props) {
 
     cirurgias: inicial?.cirurgias || [],
 
-    pareceres: inicial?.pareceres || [],
+    pareceres: [],
 
-    culturas: inicial?.culturas || [],
+    culturas: [],
 
-    examesImagem: inicial?.examesImagem || [],
+    examesImagem: [],
 
     altaOrtopediaData: inicial?.altaOrtopediaData?.split?.("T")?.[0] || "",
 
@@ -894,12 +915,11 @@ export default function PacienteForm({ inicial, modo }: Props) {
         {
           tipo: "radiografia",
           lateralidade: "nao_aplicavel",
-          descricao: "",
+          laudo: "",
           dataRealizacao: new Date().toISOString().split("T")[0],
           sitio: "",
           achados: "",
           linkTipo: "WBSRAD",
-          linkUrl: "",
         },
       ],
     });
@@ -1167,8 +1187,11 @@ export default function PacienteForm({ inicial, modo }: Props) {
           ? form.alergiasLista.join(", ")
           : form.alergias.trim() || null;
 
+      const { pareceres, culturas, examesImagem, ...dadosPaciente } = form;
+      const { funcaoRenal, ...comorbidadesJson } = form.comorbidadesJson;
+
       const payload = {
-        ...form,
+        ...dadosPaciente,
 
         cpf: form.cpf || null,
 
@@ -1179,15 +1202,13 @@ export default function PacienteForm({ inicial, modo }: Props) {
             ? form.cirurgias.filter((item) => item.nomeCirurgia)
             : [],
 
-        pareceres: undefined,
-        culturas: undefined,
-        examesImagem: undefined,
-
         alergias: alergiasFinal,
 
         traumaData: form.traumaData || null,
 
-        comorbidadesJson: JSON.stringify(form.comorbidadesJson),
+        comorbidadesJson: JSON.stringify(comorbidadesJson),
+
+        funcaoRenal: funcaoRenal.toUpperCase(),
 
         prevCirurgiasJson: form.prevCirurgiasOrto
           ? JSON.stringify(form.prevCirurgiasJson)
@@ -1290,7 +1311,9 @@ export default function PacienteForm({ inicial, modo }: Props) {
        * Relações
        * ------------------------------------------------------------- */
 
-      await salvarRelacionamentos(paciente.id);
+      if (modo === "criar") {
+        await salvarRelacionamentos(paciente.id);
+      }
 
       /* ---------------------------------------------------------------
        * Pendências automáticas
@@ -2363,8 +2386,9 @@ export default function PacienteForm({ inicial, modo }: Props) {
                 </div>
               </div>
 
-              {/* Cultura */}
-              <div className="space-y-3">
+              {/* A coleta e o resultado detalhados são gerenciados pela aba Laboratório após o cadastro. */}
+              {modo === "criar" && (
+                <div className="space-y-3">
                 <label className="flex cursor-pointer items-center gap-2">
                   <Checkbox
                     checked={form.infeccaoJson.culturas}
@@ -2405,7 +2429,8 @@ export default function PacienteForm({ inicial, modo }: Props) {
                     </div>
                   </div>
                 )}
-              </div>
+                </div>
+              )}
 
               {/* Dreno — apenas pós-operatório */}
               {form.tipoStatus === "POS_OPERATORIO" && (
@@ -2445,7 +2470,9 @@ export default function PacienteForm({ inicial, modo }: Props) {
           10. CULTURAS
       ================================================================ */}
 
-      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      {modo === "criar" && (
+        <>
+          <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
           <CardTitle className="text-sm font-semibold text-slate-800">
             Culturas
@@ -2531,13 +2558,13 @@ export default function PacienteForm({ inicial, modo }: Props) {
             Adicionar cultura
           </Button>
         </CardContent>
-      </Card>
+          </Card>
 
       {/* ================================================================
           11. PARECERES
       ================================================================ */}
 
-      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
           <CardTitle className="text-sm font-semibold text-slate-800">
             Pareceres de especialidades
@@ -2634,7 +2661,9 @@ export default function PacienteForm({ inicial, modo }: Props) {
             Adicionar parecer
           </Button>
         </CardContent>
-      </Card>
+          </Card>
+        </>
+      )}
 
       {/* ================================================================
           12. TRAUMA
@@ -3111,7 +3140,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
 
         <CardContent className="px-5 py-4">
           <Select
-            value={form.comorbidadesJson.funcaoRenal || "normal"}
+            value={form.comorbidadesJson.funcaoRenal}
             onValueChange={(value) =>
               setComorbidade("funcaoRenal", value || "normal")
             }
@@ -3131,7 +3160,8 @@ export default function PacienteForm({ inicial, modo }: Props) {
       {/* ================================================================
           18. EXAMES DE IMAGEM
       ================================================================ */}
-      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      {modo === "criar" && (
+        <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
           <CardTitle className="text-sm font-semibold text-slate-800">
             Exames de imagem
@@ -3257,9 +3287,9 @@ export default function PacienteForm({ inicial, modo }: Props) {
                   <Label>Laudo</Label>
 
                   <Textarea
-                    value={exame.descricao}
+                    value={exame.laudo}
                     onChange={(e) =>
-                      atualizarExameImagem(idx, "descricao", e.target.value)
+                      atualizarExameImagem(idx, "laudo", e.target.value)
                     }
                     rows={4}
                     placeholder="Digite o laudo do exame..."
@@ -3302,7 +3332,8 @@ export default function PacienteForm({ inicial, modo }: Props) {
             Adicionar exame
           </Button>
         </CardContent>
-      </Card>
+        </Card>
+      )}
 
       {/* ================================================================
           19. FOTOS DA ADMISSÃO

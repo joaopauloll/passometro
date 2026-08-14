@@ -7,7 +7,6 @@ import { ptBR } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PendenciasTab from "@/components/pendencias/PendenciasTab";
 import EvolucoesList from "@/components/evolucao/EvolucoesList";
-import FotosSectionView from "@/components/pacientes/FotosSectionView";
 import ExamesImagemTab from "@/components/pacientes/ExamesImagemTab";
 import {
   gerarPrescricaoPDF,
@@ -86,18 +85,13 @@ type Cultura = {
 
 export type ExameImagem = {
   id: string;
-  tipoExame?: string;
-  tipo?: string;
-  sitio?: string | null;
-  lateralidade?: string | null;
-  achados?: string | null;
-  laudo?: string | null;
-  hospitalOrigem?: string | null;
-  data?: string | null;
-  dataRealizacao?: string | null;
-  descricao?: string | null;
-  linkTipo?: string | null;
-  linkUrl?: string | null;
+  tipoExame: string;
+  sitio: string;
+  lateralidade: string;
+  achados: string | null;
+  laudo: string | null;
+  hospitalOrigem: string;
+  data: string;
 };
 
 type Paciente = {
@@ -167,7 +161,11 @@ const TABS: { id: Tab; label: string; count?: (p: Props) => number }[] = [
   { id: "cirurgias", label: "Cirurgias", count: (p) => p.cirurgias.length },
   { id: "pareceres", label: "Pareceres", count: (p) => p.pareceres.length },
   { id: "laboratorio", label: "Laboratório" },
-  { id: "imagens", label: "Exames de Imagem", count: (p) => p.fotos.length },
+  {
+    id: "imagens",
+    label: "Exames de Imagem",
+    count: (p) => p.examesImagem.length + p.fotos.length,
+  },
   { id: "alta", label: "Alta" },
   {
     id: "pendencias",

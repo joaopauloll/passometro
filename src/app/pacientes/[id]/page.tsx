@@ -305,14 +305,12 @@ export default async function PacienteDetailPage({ params }: Params) {
         examesImagem={paciente.examesImagem.map((e) => ({
           id: e.id,
           tipoExame: e.tipoExame,
-          tipo: e.tipoExame,
           sitio: e.sitio,
           lateralidade: e.lateralidade,
           achados: e.achados,
           laudo: e.laudo,
           hospitalOrigem: e.hospitalOrigem,
           data: e.data.toISOString(),
-          dataRealizacao: e.data.toISOString(),
         }))}
         diasInternado={diasInternado}
         idadePaciente={idadePaciente}
