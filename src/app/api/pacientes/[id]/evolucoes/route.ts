@@ -30,11 +30,55 @@ export async function POST(req: NextRequest, { params }: Params) {
     const { id } = await params
 
     try {
-        const paciente = await prisma.paciente.findUnique({ where: { id } })
+        const paciente = await prisma.paciente.findUnique({
+            where: { id },
+            include: { cirurgias: { orderBy: { dataCirurgia: 'desc' } }, pareceres: { orderBy: { data: 'desc' } }, },
+        })
         if (!paciente) return NextResponse.json({ error: 'Paciente não encontrado' }, { status: 404 })
 
         const dados: EvolucaoFormData = await req.json()
         const isPosOp = paciente.tipoStatus === 'POS_OPERATORIO'
+
+        if (dados.somenteLaboratorio && dados.dataExame) {
+            const dataExame = new Date(`${dados.dataExame}T00:00:00`)
+            const proximoDia = new Date(dataExame)
+            proximoDia.setDate(proximoDia.getDate() + 1)
+            const laboratorios = {
+                dataExame,
+                hemoglobina: dados.hemoglobina ?? null,
+                plaquetas: dados.plaquetas ?? null,
+                inr: dados.inr ?? null,
+                leucocitos: dados.leucocitos ?? null,
+                pcr: dados.pcr ?? null,
+                vhs: dados.vhs ?? null,
+                creatinina: dados.creatinina ?? null,
+                ureia: dados.ureia ?? null,
+            }
+            const existente = await prisma.evolucao.findFirst({
+                where: { pacienteId: id, data: { gte: dataExame, lt: proximoDia } },
+                orderBy: { createdAt: 'desc' },
+            })
+            const evolucao = existente
+                ? await prisma.evolucao.update({ where: { id: existente.id }, data: laboratorios })
+                : await prisma.evolucao.create({
+                    data: {
+                        pacienteId: id,
+                        data: dataExame,
+                        estavel: true,
+                        febre: false,
+                        semDor: true,
+                        dorControlada: true,
+                        diurese: 'espontanea',
+                        perfusaoPreservada: true,
+                        sensibilidadePreservada: true,
+                        movimentoPreservado: true,
+                        acompClinico: true,
+                        textoGerado: 'Exames laboratoriais registrados.',
+                        ...laboratorios,
+                    },
+                })
+            return NextResponse.json(evolucao, { status: existente ? 200 : 201 })
+        }
 
         // Calcula idade
         let idadePaciente: number | undefined
@@ -49,7 +93,12 @@ export async function POST(req: NextRequest, { params }: Params) {
         }
 
         // Gera texto automático
-        const textoGerado = gerarTextoEvolucao(dados, isPosOp, idadePaciente)
+        const textoGerado = gerarTextoEvolucao(dados, isPosOp, idadePaciente, {
+            paciente: { diagnostico: paciente.diagnostico, cid: paciente.cid, historiaDoencaAtual: paciente.historiaDoencaAtual, dataInternacao: paciente.dataInternacao },
+            cirurgias: paciente.cirurgias,
+            pareceres: paciente.pareceres,
+            pendencias: dados.pendenciasSelecionadas,
+        })
 
         // Cria evolução
         const evolucao = await prisma.evolucao.create({
@@ -109,7 +158,9 @@ export async function POST(req: NextRequest, { params }: Params) {
                 acompClinico: dados.acompClinico ?? null,
                 nomeClinico: dados.nomeClinico ?? null,
                 altaPrevista: dados.altaPrevista ?? null,
+                altaPrevistaData: dados.altaPrevistaData ? new Date(dados.altaPrevistaData) : null,
                 altaHoje: dados.altaHoje ?? null,
+                dataExame: dados.dataExame ? new Date(dados.dataExame) : null,
                 chkReceita: dados.chkReceita ?? false,
                 chkRelatorio: dados.chkRelatorio ?? false,
                 chkOrientacoes: dados.chkOrientacoes ?? false,
@@ -127,7 +178,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         })
 
         // Gera pendências automáticas
-        const pendenciasParaGerar = gerarPendencias(dados, isPosOp, idadePaciente)
+        const pendenciasParaGerar = dados.pendenciasSelecionadas ?? gerarPendencias(dados, isPosOp, idadePaciente)
         if (pendenciasParaGerar.length > 0) {
             await prisma.pendencia.createMany({
                 data: pendenciasParaGerar.map((p) => ({

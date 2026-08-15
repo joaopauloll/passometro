@@ -12,7 +12,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import SimNao from "@/components/ui/simnao";
 
-import { gerarTextoEvolucao, gerarPendencias } from "@/lib/evolucao";
+import {
+  gerarTextoEvolucao,
+  gerarPendencias,
+  type ContextoTextoEvolucao,
+} from "@/lib/evolucao";
 
 import type { EvolucaoFormData } from "@/types";
 
@@ -25,6 +29,7 @@ type Props = {
   evolucaoId?: string;
   initialData?: Partial<EvolucaoFormData>;
   pacienteTemInfeccao?: boolean;
+  contextoTexto?: ContextoTextoEvolucao;
   isPosOperatorio: boolean;
   idadePaciente?: number | null;
   nomePaciente: string;
@@ -39,6 +44,7 @@ export default function EvolucaoForm({
   evolucaoId,
   initialData,
   pacienteTemInfeccao = false,
+  contextoTexto,
   isPosOperatorio,
   idadePaciente,
   nomePaciente,
@@ -267,6 +273,7 @@ export default function EvolucaoForm({
    * ======================================================================== */
 
   const [altaPrevista, setAltaPrevista] = useState(true);
+  const [altaPrevistaData, setAltaPrevistaData] = useState("");
 
   const [altaHoje, setAltaHoje] = useState(false);
 
@@ -282,6 +289,10 @@ export default function EvolucaoForm({
    * ======================================================================== */
 
   const [observacoes, setObservacoes] = useState("");
+  const [dataExame, setDataExame] = useState("");
+  const [pendenciasIncluidas, setPendenciasIncluidas] = useState<
+    Record<string, boolean>
+  >({});
 
   useEffect(() => {
     if (!initialData) return;
@@ -353,6 +364,7 @@ export default function EvolucaoForm({
       setAcompClinico(initialData.acompClinico ?? false);
       setNomeClinico(initialData.nomeClinico ?? "");
       setAltaPrevista(initialData.altaPrevista ?? true);
+      setAltaPrevistaData(initialData.altaPrevistaData ?? "");
       setAltaHoje(initialData.altaHoje ?? false);
       setChkReceita(initialData.chkReceita ?? false);
       setChkRelatorio(initialData.chkRelatorio ?? false);
@@ -361,6 +373,7 @@ export default function EvolucaoForm({
       setChkRetorno(initialData.chkRetorno ?? false);
       setChkRX(initialData.chkRX ?? false);
       setObservacoes(initialData.observacoes ?? "");
+      setDataExame(initialData.dataExame ?? "");
     });
   }, [initialData]);
 
@@ -448,6 +461,7 @@ export default function EvolucaoForm({
       nomeClinico: nomeClinico || undefined,
 
       altaPrevista,
+      altaPrevistaData: altaPrevistaData || undefined,
       altaHoje,
 
       chkReceita,
@@ -468,6 +482,7 @@ export default function EvolucaoForm({
       drenoAspecto: drenoAspecto || undefined,
 
       observacoes: observacoes || undefined,
+      dataExame: dataExame || undefined,
     }),
     [
       estavel,
@@ -524,6 +539,7 @@ export default function EvolucaoForm({
       acompClinico,
       nomeClinico,
       altaPrevista,
+      altaPrevistaData,
       altaHoje,
       chkReceita,
       chkRelatorio,
@@ -537,18 +553,13 @@ export default function EvolucaoForm({
       drenoCm3,
       drenoAspecto,
       observacoes,
+      dataExame,
     ],
   );
 
   /* ============================================================================
    * PREVIEW
    * ========================================================================== */
-
-  const textoPreview = gerarTextoEvolucao(
-    getDados(),
-    isPosOperatorio,
-    idadePaciente ?? undefined,
-  );
 
   const pendenciasPreview = useCallback(() => {
     return gerarPendencias(
@@ -557,6 +568,19 @@ export default function EvolucaoForm({
       idadePaciente ?? undefined,
     );
   }, [getDados, isPosOperatorio, idadePaciente]);
+
+  const pendenciasGeradas = pendenciasPreview();
+  const pendenciasSelecionadas = pendenciasGeradas.filter(
+    (pendencia) =>
+      pendenciasIncluidas[`${pendencia.tipo}:${pendencia.descricao}`] !== false,
+  );
+
+  const textoPreview = gerarTextoEvolucao(
+    getDados(),
+    isPosOperatorio,
+    idadePaciente ?? undefined,
+    { ...contextoTexto, pendencias: pendenciasSelecionadas },
+  );
 
   /* ==========================================================================
    * SALVAR
@@ -568,6 +592,7 @@ export default function EvolucaoForm({
 
     try {
       const dados = getDados();
+      dados.pendenciasSelecionadas = pendenciasSelecionadas;
 
       const url = evolucaoId
         ? `/api/pacientes/${pacienteId}/evolucoes/${evolucaoId}`
@@ -1228,7 +1253,15 @@ export default function EvolucaoForm({
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="px-5 py-4">
+        <CardContent className="px-5 py-4 space-y-4">
+          <div className="space-y-1.5 max-w-xs">
+            <Label className="text-xs text-gray-500">Data do exame</Label>
+            <Input
+              type="date"
+              value={dataExame}
+              onChange={(e) => setDataExame(e.target.value)}
+            />
+          </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs text-gray-500">Hb (g/dL)</Label>
@@ -1519,6 +1552,17 @@ export default function EvolucaoForm({
             onChange={setAltaPrevista}
           />
 
+          {altaPrevista && (
+            <div className="space-y-1.5 max-w-xs">
+              <Label className="text-sm">Data prevista para alta</Label>
+              <Input
+                type="date"
+                value={altaPrevistaData}
+                onChange={(e) => setAltaPrevistaData(e.target.value)}
+              />
+            </div>
+          )}
+
           <SimNao label="Alta hoje?" value={altaHoje} onChange={setAltaHoje} />
 
           {altaHoje && (
@@ -1611,6 +1655,45 @@ export default function EvolucaoForm({
         </CardContent>
       </Card>
 
+      {pendenciasGeradas.length > 0 && (
+        <Card className="overflow-hidden rounded-2xl border border-amber-200 bg-amber-50 shadow-sm">
+          <CardHeader className="border-b border-amber-100 px-5 py-4">
+            <CardTitle className="text-sm font-medium tracking-wide text-amber-700">
+              Pendências
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 px-5 py-4">
+            <p className="text-sm text-amber-800">
+              Selecione as pendências para incluir no texto da evolução:
+            </p>
+            <div className="space-y-2">
+              {pendenciasGeradas.map((pendencia) => {
+                const chave = `${pendencia.tipo}:${pendencia.descricao}`;
+                return (
+                  <label
+                    key={chave}
+                    className="flex items-start gap-2 cursor-pointer text-sm text-amber-900"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={pendenciasIncluidas[chave] !== false}
+                      onChange={(e) =>
+                        setPendenciasIncluidas((atual) => ({
+                          ...atual,
+                          [chave]: e.target.checked,
+                        }))
+                      }
+                      className="mt-0.5 h-4 w-4 accent-amber-600"
+                    />
+                    {pendencia.descricao}
+                  </label>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* ====================================================================
           PREVIEW DO TEXTO
       ==================================================================== */}
@@ -1618,8 +1701,8 @@ export default function EvolucaoForm({
       <Card className="overflow-hidden rounded-2xl border border-blue-200 bg-blue-50 shadow-sm">
         <CardHeader className="border-b border-slate-100 px-5 py-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium uppercase tracking-wide text-blue-700">
-              📋 Texto de Evolução (gerado automaticamente)
+            <CardTitle className="text-sm font-medium tracking-wide text-blue-700">
+              📋 Evolução Gerada
             </CardTitle>
 
             {textoPreview && (
@@ -1640,7 +1723,7 @@ export default function EvolucaoForm({
 
         <CardContent className="px-5 py-4">
           {textoPreview ? (
-            <p className="text-sm leading-relaxed text-gray-800">
+            <p className="text-sm leading-relaxed text-gray-800 whitespace-pre-wrap">
               {textoPreview}
             </p>
           ) : (
@@ -1654,31 +1737,6 @@ export default function EvolucaoForm({
       {/* ====================================================================
           PENDÊNCIAS
       ==================================================================== */}
-
-      {pendenciasPreview().length > 0 && (
-        <Card className="overflow-hidden rounded-2xl border border-amber-200 bg-amber-50 shadow-sm">
-          <CardHeader className="border-b border-slate-100 px-5 py-4">
-            <CardTitle className="text-sm font-medium uppercase tracking-wide text-amber-700">
-              ⚠ Pendências que serão geradas ({pendenciasPreview().length})
-            </CardTitle>
-          </CardHeader>
-
-          <CardContent className="px-5 py-4">
-            <ul className="space-y-1">
-              {pendenciasPreview().map((p, i) => (
-                <li
-                  key={i}
-                  className="flex items-center gap-1.5 text-xs text-amber-800"
-                >
-                  <span>•</span>
-                  <span>{p.descricao}</span>
-                  <span className="text-amber-500">({p.tipo})</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
 
       {/* ====================================================================
           BOTÕES

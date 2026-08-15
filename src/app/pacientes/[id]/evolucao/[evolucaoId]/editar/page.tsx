@@ -88,7 +88,11 @@ export default async function EditarEvolucaoPage({ params }: Params) {
             curativoLateralidade: normalizarLateralidade(
               evolucao.curativoLateralidade,
             ),
-          } as Partial<EvolucaoFormData>
+            altaPrevistaData: evolucao.altaPrevistaData
+              ?.toISOString()
+              .slice(0, 10),
+            dataExame: evolucao.dataExame?.toISOString().slice(0, 10),
+          } as unknown as Partial<EvolucaoFormData>
         }
         isPosOperatorio={isPosOperatorio}
         idadePaciente={idadePaciente}

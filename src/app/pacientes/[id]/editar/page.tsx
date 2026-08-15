@@ -108,8 +108,6 @@ export default async function EditarPacientePage({ params }: Params) {
 
           inrAdm: paciente.inrAdm != null ? String(paciente.inrAdm) : undefined,
 
-          pps: paciente.pps != null ? String(paciente.pps) : undefined,
-
           temInfeccao: paciente.temInfeccao,
           infeccaoJson: paciente.infeccaoJson ?? undefined,
 

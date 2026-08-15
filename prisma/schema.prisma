@@ -52,7 +52,6 @@ model Paciente {
   hemoglobinaAdm    Float?
   plaquetasAdm      Float?
   inrAdm            Float?
-  pps               Int?
   infeccaoJson      String? // JSON: {febre,antibiotico,inicio,antibioticoPrevio,culturas,culturasResult,dreno}
 
   // Alta e follow-up
@@ -182,8 +181,10 @@ model Evolucao {
   nomeClinico  String?
 
   // Alta
-  altaPrevista   Boolean?
-  altaHoje       Boolean?
+  altaPrevista     Boolean?
+  altaPrevistaData DateTime?
+  altaHoje         Boolean?
+  dataExame        DateTime?
   chkReceita     Boolean  @default(false)
   chkRelatorio   Boolean  @default(false)
   chkOrientacoes Boolean  @default(false)

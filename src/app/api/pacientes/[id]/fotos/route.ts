@@ -139,6 +139,30 @@ export async function POST(
     }
 }
 
+// PUT /api/pacientes/[id]/fotos — atualiza metadados da imagem
+export async function PUT(req: NextRequest, { params }: Params) {
+    const session = await getSessionFromRequest(req)
+    if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+
+    const { id: pacienteId } = await params
+    const { fotoId, dataFoto, descricao, lateralidade } = await req.json()
+    if (!fotoId) return NextResponse.json({ error: 'fotoId obrigatório' }, { status: 400 })
+
+    const foto = await prisma.foto.findFirst({ where: { id: fotoId, pacienteId } })
+    if (!foto) return NextResponse.json({ error: 'Foto não encontrada' }, { status: 404 })
+
+    const atualizada = await prisma.foto.update({
+        where: { id: fotoId },
+        data: {
+            dataFoto: dataFoto ? new Date(dataFoto) : null,
+            descricao: descricao ?? null,
+            lateralidade: lateralidade ?? null,
+        },
+    })
+
+    return NextResponse.json(atualizada)
+}
+
 // DELETE /api/pacientes/[id]/fotos?fotoId=xxx
 export async function DELETE(req: NextRequest, { params }: Params) {
     const session = await getSessionFromRequest(req)

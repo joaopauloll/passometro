@@ -70,7 +70,7 @@ export default function EvolucoesList({ evolucoes, pacienteId }: Props) {
 
             {expandido === ev.id && ev.textoGerado && (
               <div className="px-3 pb-3 border-t border-gray-100">
-                <p className="text-sm text-gray-700 leading-relaxed mt-2">
+                <p className="text-sm text-gray-700 leading-relaxed mt-2 whitespace-pre-wrap">
                   {ev.textoGerado}
                 </p>
                 <div className="mt-2 flex gap-2">

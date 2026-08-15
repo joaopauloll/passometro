@@ -238,7 +238,7 @@ export async function gerarLaudoPDF(pac: PacienteParaPDF, diasAfastamento = 90, 
 
     if (pac.cirurgias.length > 0) {
         const c = pac.cirurgias[0]
-        y = addTexto(doc, `Tratamento cirúrgico: ${c.nomeCirurgia} realizado em ${new Date(c.dataCirurgia).toLocaleDateString('pt-BR')}, Dr(a). ${c.cirurgiao}.`, y)
+        y = addTexto(doc, `Tratamento cirúrgico: ${c.nomeCirurgia} realizado em ${formatarDataCalendario(c.dataCirurgia)}, Dr(a). ${c.cirurgiao}.`, y)
         y += 2
     }
 
@@ -250,6 +250,13 @@ export async function gerarLaudoPDF(pac: PacienteParaPDF, diasAfastamento = 90, 
 
     footer(doc, config)
     doc.save(`laudo-${pac.nome.replace(/\s+/g, '-')}.pdf`)
+}
+
+function formatarDataCalendario(data: string): string {
+    const calendario = /^\d{4}-\d{2}-\d{2}/.exec(data)?.[0]
+    return calendario
+        ? new Date(`${calendario}T00:00:00`).toLocaleDateString('pt-BR')
+        : new Date(data).toLocaleDateString('pt-BR')
 }
 
 export async function gerarSolicitacaoFisioterapiaPDF(pac: PacienteParaPDF, indicacao: string, config?: ConfiguracaoPDF) {

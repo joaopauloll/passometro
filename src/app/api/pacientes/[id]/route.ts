@@ -78,7 +78,6 @@ export async function PUT(req: NextRequest, { params }: Params) {
                 hemoglobinaAdm: pacienteData.hemoglobinaAdm ?? null,
                 plaquetasAdm: pacienteData.plaquetasAdm ?? null,
                 inrAdm: pacienteData.inrAdm ?? null,
-                pps: pacienteData.pps ?? null,
                 infeccaoJson: pacienteData.infeccaoJson || null,
                 altaOrtopediaData: pacienteData.altaOrtopediaData ? new Date(pacienteData.altaOrtopediaData) : null,
                 altaHospitalarData: pacienteData.altaHospitalarData ? new Date(pacienteData.altaHospitalarData) : null,

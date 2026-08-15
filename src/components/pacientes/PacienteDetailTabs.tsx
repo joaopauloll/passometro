@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatDate } from "@/lib/examesConstants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PendenciasTab from "@/components/pendencias/PendenciasTab";
 import EvolucoesList from "@/components/evolucao/EvolucoesList";
@@ -30,6 +31,8 @@ type Evolucao = {
   textoGerado: string | null;
   altaHoje: boolean | null;
   altaPrevista: boolean | null;
+  altaPrevistaData?: string | null;
+  dataExame?: string | null;
   hemoglobina: number | null;
   plaquetas: number | null;
   inr: number | null;
@@ -171,7 +174,6 @@ type Paciente = {
   houveTrauma: boolean;
   traumaData: string | null;
   traumaTempo: string | null;
-  pps: number | null;
   funcaoRenal: string | null;
   infeccaoJson: string | null;
   riscoJson: string | null;
@@ -287,6 +289,8 @@ export default function PacienteDetailTabs(props: Props) {
           paciente={paciente}
           idadePaciente={idadePaciente}
           pacienteTemInfeccao={paciente.temInfeccao}
+          cirurgias={cirurgias}
+          pareceres={pareceres}
         />
       )}
       {tab === "cirurgias" && (
@@ -497,54 +501,78 @@ function ResumoTab({ paciente, evolucoes, cirurgias, cirurgioesList }: Props) {
         </div>
       </ResumoSection>
 
-      <ResumoSection title="História clínica">
-        <div className="space-y-4">
-          {paciente.historiaDoencaAtual?.trim() && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
-                História da doença atual
-              </p>
+      {/* 1. SEÇÃO DO EVENTO AGUDO (HDA + TRAUMA) */}
+      {(paciente.historiaDoencaAtual?.trim() || paciente.houveTrauma) && (
+        <ResumoSection title="História da Doença Atual">
+          <div className="space-y-4">
+            {/* Texto da HDA */}
+            {paciente.historiaDoencaAtual?.trim() && (
               <p className="text-sm text-slate-700 whitespace-pre-wrap">
                 {paciente.historiaDoencaAtual}
               </p>
-              <p className="text-xs text-slate-500 mt-2">
-                Trauma: {paciente.houveTrauma ? "Sim" : "Não"}
-              </p>
-            </div>
-          )}
+            )}
 
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">
-              Comorbidades
-            </p>
+            {/* Contexto do Trauma (incorporado à HDA para dar mais corpo) */}
+            {paciente.houveTrauma && (
+              <div className="rounded-lg bg-orange-50 border border-orange-100 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-orange-800 mb-2">
+                  Contexto do Trauma
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {paciente.traumaData && (
+                    <div>
+                      <p className="text-xs text-orange-600/80">Data</p>
+                      <p className="text-sm font-medium text-orange-900 mt-0.5">
+                        {format(new Date(paciente.traumaData), "dd/MM/yyyy", {
+                          locale: ptBR,
+                        })}
+                      </p>
+                    </div>
+                  )}
 
-            {comorbidades.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {comorbidades.map((comorbidade) => (
-                  <span
-                    key={comorbidade}
-                    className="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700"
-                  >
-                    {comorbidade}
-                  </span>
-                ))}
+                  {paciente.traumaTempo && (
+                    <div>
+                      <p className="text-xs text-orange-600/80">
+                        Tempo de evolução
+                      </p>
+                      <p className="text-sm font-medium text-orange-900 mt-0.5">
+                        {paciente.traumaTempo}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
-            ) : (
-              <p className="text-sm text-slate-400">
-                Nenhuma comorbidade registrada.
-              </p>
             )}
           </div>
+        </ResumoSection>
+      )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2.5">
-              <p className="text-xs text-slate-400">PPS</p>
-              <p className="text-sm font-semibold text-slate-800 mt-0.5">
-                {paciente.pps != null ? `${paciente.pps}%` : "—"}
+      {/* 2. SEÇÃO DE HISTÓRICO PRÉVIO */}
+      <ResumoSection title="Antecedentes Clínicos">
+        <div className="space-y-4">
+          {/* Comorbidades e Função Renal lado a lado para otimizar espaço */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">
+                Comorbidades
               </p>
+              {comorbidades.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {comorbidades.map((comorbidade) => (
+                    <span
+                      key={comorbidade}
+                      className="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700"
+                    >
+                      {comorbidade}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400">Nenhuma registrada.</p>
+              )}
             </div>
 
-            <div className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2.5">
+            <div className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2.5 h-fit">
               <p className="text-xs text-slate-400">Função renal</p>
               <p className="text-sm font-semibold text-slate-800 mt-0.5">
                 {paciente.funcaoRenal === "REDUZIDA"
@@ -557,7 +585,7 @@ function ResumoTab({ paciente, evolucoes, cirurgias, cirurgioesList }: Props) {
           </div>
 
           <div className="pt-3 border-t border-slate-100">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">
               Alergias
             </p>
             {paciente.temAlergia || paciente.alergias ? (
@@ -579,7 +607,7 @@ function ResumoTab({ paciente, evolucoes, cirurgias, cirurgioesList }: Props) {
           {paciente.medicacoes?.trim() && (
             <div className="pt-3 border-t border-slate-100">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
-                Medicações
+                Medicações em uso
               </p>
               <p className="text-sm text-slate-700 whitespace-pre-wrap">
                 {paciente.medicacoes}
@@ -588,42 +616,6 @@ function ResumoTab({ paciente, evolucoes, cirurgias, cirurgioesList }: Props) {
           )}
         </div>
       </ResumoSection>
-
-      {paciente.houveTrauma &&
-        (paciente.traumaData || paciente.traumaTempo) && (
-          <ResumoSection title="Contexto do trauma">
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs text-slate-400">Mecanismo</p>
-                <p className="text-sm font-medium text-slate-800 mt-0.5">
-                  {paciente.traumaMecanismo}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                {paciente.traumaData && (
-                  <div>
-                    <p className="text-xs text-slate-400">Data</p>
-                    <p className="text-sm font-medium text-slate-800 mt-0.5">
-                      {format(new Date(paciente.traumaData), "dd/MM/yyyy", {
-                        locale: ptBR,
-                      })}
-                    </p>
-                  </div>
-                )}
-
-                {paciente.traumaTempo && (
-                  <div>
-                    <p className="text-xs text-slate-400">Tempo de trauma</p>
-                    <p className="text-sm font-medium text-slate-800 mt-0.5">
-                      {paciente.traumaTempo}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </ResumoSection>
-        )}
 
       {ultimaCirurgia && (
         <ResumoSection title="Situação cirúrgica">
@@ -634,9 +626,7 @@ function ResumoTab({ paciente, evolucoes, cirurgias, cirurgioesList }: Props) {
               </p>
 
               <p className="text-xs text-slate-500 mt-1">
-                {format(new Date(ultimaCirurgia.dataCirurgia), "dd/MM/yyyy", {
-                  locale: ptBR,
-                })}
+                {formatDate(ultimaCirurgia.dataCirurgia)}
                 {ultimaCirurgia.hospitalExterno
                   ? ` · ${ultimaCirurgia.hospitalExterno}`
                   : ""}
@@ -814,12 +804,16 @@ function EvolucaoTab({
   paciente,
   idadePaciente,
   pacienteTemInfeccao,
+  cirurgias,
+  pareceres,
 }: {
   evolucoes: Evolucao[];
   pacienteId: string;
   paciente: Paciente;
   idadePaciente: number | null;
   pacienteTemInfeccao: boolean;
+  cirurgias: Cirurgia[];
+  pareceres: Parecer[];
 }) {
   const [showForm, setShowForm] = useState(false);
 
@@ -848,6 +842,16 @@ function EvolucaoTab({
           isPosOperatorio={paciente.tipoStatus === "POS_OPERATORIO"}
           idadePaciente={idadePaciente}
           pacienteTemInfeccao={pacienteTemInfeccao}
+          contextoTexto={{
+            paciente: {
+              diagnostico: paciente.diagnostico,
+              cid: paciente.cid,
+              historiaDoencaAtual: paciente.historiaDoencaAtual,
+              dataInternacao: paciente.dataInternacao,
+            },
+            cirurgias,
+            pareceres,
+          }}
           initialData={
             evolucoes[0] as unknown as Partial<EvolucaoFormData> | undefined
           }
@@ -889,8 +893,7 @@ function CirurgiasTab({
               <CardContent className="py-3 px-4">
                 <p className="font-semibold text-slate-900">{c.nomeCirurgia}</p>
                 <p className="text-sm text-slate-500 mt-0.5">
-                  Dr. {c.cirurgiao} ·{" "}
-                  {format(new Date(c.dataCirurgia), "dd/MM/yyyy")}
+                  Dr. {c.cirurgiao} · {formatDate(c.dataCirurgia)}
                   {c.hospitalExterno && ` · ${c.hospitalExterno}`}
                 </p>
               </CardContent>
@@ -1091,6 +1094,20 @@ function LaboratorioTab({
   pacienteId: string;
 }) {
   const [culturas, setCulturas] = useState(iniciais);
+  const [laboratorios, setLaboratorios] = useState(evolucoes);
+  const [showLabForm, setShowLabForm] = useState(false);
+  const [savingLab, setSavingLab] = useState(false);
+  const [formLaboratorio, setFormLaboratorio] = useState({
+    dataExame: new Date().toISOString().slice(0, 10),
+    hemoglobina: "",
+    plaquetas: "",
+    inr: "",
+    leucocitos: "",
+    pcr: "",
+    vhs: "",
+    creatinina: "",
+    ureia: "",
+  });
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formCultura, setFormCultura] = useState({
@@ -1100,7 +1117,7 @@ function LaboratorioTab({
     dataResult: "",
   });
 
-  const comLabs = evolucoes.filter(
+  const comLabs = laboratorios.filter(
     (e) =>
       e.hemoglobina != null ||
       e.plaquetas != null ||
@@ -1117,6 +1134,42 @@ function LaboratorioTab({
     if (v < min || v > max) return "text-red-600 font-bold";
     return "text-green-700";
   };
+
+  async function salvarLaboratorio() {
+    if (!formLaboratorio.dataExame) return;
+    setSavingLab(true);
+    const payload = Object.fromEntries(
+      Object.entries(formLaboratorio).map(([key, value]) => [
+        key,
+        key === "dataExame" ? value : value === "" ? null : Number(value),
+      ]),
+    );
+    const res = await fetch(`/api/pacientes/${pacienteId}/evolucoes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, somenteLaboratorio: true }),
+    });
+    if (res.ok) {
+      const salvo = await res.json();
+      setLaboratorios((atuais) => [
+        salvo,
+        ...atuais.filter((item) => item.id !== salvo.id),
+      ]);
+      setShowLabForm(false);
+      setFormLaboratorio({
+        dataExame: new Date().toISOString().slice(0, 10),
+        hemoglobina: "",
+        plaquetas: "",
+        inr: "",
+        leucocitos: "",
+        pcr: "",
+        vhs: "",
+        creatinina: "",
+        ureia: "",
+      });
+    }
+    setSavingLab(false);
+  }
 
   async function salvarCultura() {
     if (!formCultura.dataColeta || !formCultura.sitio) return;
@@ -1154,9 +1207,92 @@ function LaboratorioTab({
     <div className="space-y-6">
       {/* Exames laboratoriais */}
       <div>
-        <h3 className="text-sm font-semibold text-slate-700 mb-3">
-          Exames laboratoriais
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-slate-700">
+            Exames laboratoriais
+          </h3>
+          <button
+            type="button"
+            onClick={() => setShowLabForm((value) => !value)}
+            className="inline-flex items-center gap-1 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+          >
+            + Novo exame
+          </button>
+        </div>
+        {showLabForm && (
+          <Card className="mb-4 border-blue-200">
+            <CardContent className="py-4 space-y-4">
+              <div className="max-w-xs">
+                <label className="text-xs text-slate-500 block mb-1">
+                  Data do exame *
+                </label>
+                <input
+                  type="date"
+                  value={formLaboratorio.dataExame}
+                  onChange={(e) =>
+                    setFormLaboratorio({
+                      ...formLaboratorio,
+                      dataExame: e.target.value,
+                    })
+                  }
+                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {[
+                  ["hemoglobina", "Hemoglobina (g/dL)"],
+                  ["plaquetas", "Plaquetas (k)"],
+                  ["inr", "INR"],
+                  ["leucocitos", "Leucócitos (k)"],
+                  ["pcr", "PCR"],
+                  ["vhs", "VHS"],
+                  ["creatinina", "Creatinina"],
+                  ["ureia", "Ureia"],
+                ].map(([key, label]) => (
+                  <div key={key}>
+                    <label className="text-xs text-slate-500 block mb-1">
+                      {label}
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={
+                        formLaboratorio[
+                          key as keyof typeof formLaboratorio
+                        ] as string
+                      }
+                      onChange={(e) =>
+                        setFormLaboratorio({
+                          ...formLaboratorio,
+                          [key]: e.target.value,
+                        })
+                      }
+                      className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="—"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowLabForm(false)}
+                  className="text-sm text-slate-500 px-3 py-1.5 rounded-lg hover:bg-slate-100"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={salvarLaboratorio}
+                  disabled={savingLab}
+                  className="text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg disabled:opacity-50"
+                >
+                  {savingLab ? "Salvando..." : "Salvar exame"}
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         {comLabs.length === 0 ? (
           <p className="text-sm text-slate-400 py-4">
             Nenhum resultado laboratorial registrado nas evoluções.

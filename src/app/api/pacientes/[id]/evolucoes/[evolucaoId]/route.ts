@@ -14,7 +14,10 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const { id, evolucaoId } = await params
 
     try {
-        const paciente = await prisma.paciente.findUnique({ where: { id } })
+        const paciente = await prisma.paciente.findUnique({
+            where: { id },
+            include: { cirurgias: { orderBy: { dataCirurgia: 'desc' } }, pareceres: { orderBy: { data: 'desc' } } },
+        })
         if (!paciente) return NextResponse.json({ error: 'Paciente não encontrado' }, { status: 404 })
 
         const dados: EvolucaoFormData = await req.json()
@@ -30,7 +33,12 @@ export async function PUT(req: NextRequest, { params }: Params) {
             idadePaciente = idade
         }
 
-        const textoGerado = gerarTextoEvolucao(dados, isPosOp, idadePaciente)
+        const textoGerado = gerarTextoEvolucao(dados, isPosOp, idadePaciente, {
+            paciente: { diagnostico: paciente.diagnostico, cid: paciente.cid, historiaDoencaAtual: paciente.historiaDoencaAtual, dataInternacao: paciente.dataInternacao },
+            cirurgias: paciente.cirurgias,
+            pareceres: paciente.pareceres,
+            pendencias: dados.pendenciasSelecionadas,
+        })
 
         const evolucao = await prisma.evolucao.update({
             where: { id: evolucaoId },
@@ -88,7 +96,9 @@ export async function PUT(req: NextRequest, { params }: Params) {
                 acompClinico: dados.acompClinico ?? null,
                 nomeClinico: dados.nomeClinico ?? null,
                 altaPrevista: dados.altaPrevista ?? null,
+                altaPrevistaData: dados.altaPrevistaData ? new Date(dados.altaPrevistaData) : null,
                 altaHoje: dados.altaHoje ?? null,
+                dataExame: dados.dataExame ? new Date(dados.dataExame) : null,
                 chkReceita: dados.chkReceita ?? false,
                 chkRelatorio: dados.chkRelatorio ?? false,
                 chkOrientacoes: dados.chkOrientacoes ?? false,

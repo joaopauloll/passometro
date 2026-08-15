@@ -21,11 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import {
-  MEDICAMENTOS_SUSPENSO,
-  MEDICAMENTOS_COMUNS,
-  PPS_NIVEIS,
-} from "@/lib/medicamentos";
+import { MEDICAMENTOS_SUSPENSO, MEDICAMENTOS_COMUNS } from "@/lib/medicamentos";
 
 import CirurgiaoMultiSelect from "@/components/pacientes/CirurgiaoMultiSelect";
 import FotoUpload, { FotoPendente } from "@/components/FotoUpload";
@@ -163,8 +159,6 @@ type FormValues = {
   hemoglobinaAdm: string;
   plaquetasAdm: string;
   inrAdm: string;
-
-  pps: string;
 
   temInfeccao: boolean;
   infeccaoJson: InfeccaoData;
@@ -533,8 +527,6 @@ export default function PacienteForm({ inicial, modo }: Props) {
       inicial?.plaquetasAdm != null ? String(inicial.plaquetasAdm) : "",
 
     inrAdm: inicial?.inrAdm != null ? String(inicial.inrAdm) : "",
-
-    pps: inicial?.pps != null ? String(inicial.pps) : "",
 
     temInfeccao: inicial?.temInfeccao || false,
 
@@ -1247,8 +1239,6 @@ export default function PacienteForm({ inicial, modo }: Props) {
 
         inrAdm: form.inrAdm ? parseFloat(form.inrAdm) : null,
 
-        pps: form.pps ? parseInt(form.pps) : null,
-
         altaOrtopediaData: form.altaOrtopediaData || null,
 
         altaHospitalarData: form.altaHospitalarData || null,
@@ -1608,7 +1598,74 @@ export default function PacienteForm({ inicial, modo }: Props) {
       </Card>
 
       {/* ================================================================
-          3. CIRURGIA ATUAL / CIRURGIAS REALIZADAS
+          3. HISTÓRIA DA DOENÇA ATUAL
+        ================================================================ */}
+
+      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
+          <CardTitle className="text-sm font-semibold text-slate-800">
+            História da Doença Atual
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent className="px-5 py-4 grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>História da doença atual</Label>
+
+            <Textarea
+              rows={4}
+              value={form.historiaDoencaAtual}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  historiaDoencaAtual: e.target.value,
+                })
+              }
+              placeholder="Descreva o início, evolução e contexto clínico atual..."
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <SimNao
+              label="Houve trauma?"
+              value={form.houveTrauma}
+              onChange={(value) => setForm({ ...form, houveTrauma: value })}
+            />
+          </div>
+
+          {form.houveTrauma && (
+            <>
+              <div className="space-y-1.5">
+                <Label>Data do trauma</Label>
+
+                <Input
+                  type="date"
+                  value={form.traumaData}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      traumaData: e.target.value,
+                      traumaTempo: e.target.value
+                        ? `${differenceInDays(new Date(), new Date(`${e.target.value}T00:00:00`))} dias`
+                        : "",
+                    })
+                  }
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Tempo do trauma</Label>
+                <p className="text-sm text-slate-700 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                  {form.traumaTempo || "Informe a data do trauma"}
+                </p>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ================================================================
+          4. CIRURGIA ATUAL / CIRURGIAS REALIZADAS
       ================================================================ */}
 
       {form.tipoStatus === "POS_OPERATORIO" && (
@@ -1781,7 +1838,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
       )}
 
       {/* ================================================================
-          4. SUBESPECIALIDADE / COMORBIDADES
+          5. SUBESPECIALIDADE / COMORBIDADES
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -1838,7 +1895,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
       </Card>
 
       {/* ================================================================
-          5. CIRURGIAS PRÉVIAS
+          6. CIRURGIAS PRÉVIAS
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -1969,7 +2026,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
       </Card>
 
       {/* ================================================================
-          6. MEDICAMENTOS
+          7. MEDICAMENTOS
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -2133,7 +2190,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
       </Card>
 
       {/* ================================================================
-          7. ALERGIAS
+          8. ALERGIAS
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -2212,7 +2269,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
       </Card>
 
       {/* ================================================================
-          8. LABORATÓRIO
+          9. LABORATÓRIO
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -2298,7 +2355,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
       </Card>
 
       {/* ================================================================
-      9. INFECÇÃO
+      10. INFECÇÃO
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -2476,7 +2533,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
       </Card>
 
       {/* ================================================================
-          10. CULTURAS
+          11. CULTURAS
       ================================================================ */}
 
       {modo === "criar" && (
@@ -2573,7 +2630,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
           </Card>
 
           {/* ================================================================
-          11. PARECERES
+          12. PARECERES
       ================================================================ */}
 
           <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -2681,120 +2738,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
       )}
 
       {/* ================================================================
-          12. HISTÓRIA DA DOENÇA ATUAL
-        ================================================================ */}
-
-      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
-          <CardTitle className="text-sm font-semibold text-slate-800">
-            História da Doença Atual
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent className="px-5 py-4 grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label>História da doença atual</Label>
-
-            <Textarea
-              rows={4}
-              value={form.historiaDoencaAtual}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  historiaDoencaAtual: e.target.value,
-                })
-              }
-              placeholder="Descreva o início, evolução e contexto clínico atual..."
-            />
-          </div>
-
-          <div className="sm:col-span-2">
-            <SimNao
-              label="Houve trauma?"
-              value={form.houveTrauma}
-              onChange={(value) => setForm({ ...form, houveTrauma: value })}
-            />
-          </div>
-
-          {form.houveTrauma && (
-            <>
-              <div className="space-y-1.5">
-                <Label>Data do trauma</Label>
-
-                <Input
-                  type="date"
-                  value={form.traumaData}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      traumaData: e.target.value,
-                      traumaTempo: e.target.value
-                        ? `${differenceInDays(new Date(), new Date(`${e.target.value}T00:00:00`))} dias`
-                        : "",
-                    })
-                  }
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Tempo do trauma</Label>
-                <p className="text-sm text-slate-700 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                  {form.traumaTempo || "Informe a data do trauma"}
-                </p>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ================================================================
-          13. PPS
-      ================================================================ */}
-
-      <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <CardHeader className="border-b border-slate-100 px-5 py-4 pb-4">
-          <CardTitle className="text-sm font-semibold text-slate-800">
-            PPS — Escala de Performance Paliativa
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent className="px-5 py-4 space-y-3">
-          <p className="text-xs text-slate-500">
-            Avalia o estado funcional do paciente.
-          </p>
-
-          <Select
-            value={form.pps}
-            onValueChange={(value) =>
-              setForm({
-                ...form,
-                pps: value || "",
-              })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecionar nível PPS..." />
-            </SelectTrigger>
-
-            <SelectContent>
-              {PPS_NIVEIS.map((nivel) => (
-                <SelectItem key={nivel.valor} value={String(nivel.valor)}>
-                  {nivel.desc}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {form.pps && (
-            <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700">
-              PPS: {form.pps}%
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ================================================================
-          14. ALTA
+          13. ALTA
       ================================================================ */}
 
       {form.tipoStatus === "POS_OPERATORIO" && (
@@ -2870,7 +2814,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
       )}
 
       {/* ================================================================
-          15. CLÍNICA MÉDICA
+          14. CLÍNICA MÉDICA
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -2939,7 +2883,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
       </Card>
 
       {/* ================================================================
-      16. RISCO CIRÚRGICO
+      15. RISCO CIRÚRGICO
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -3153,7 +3097,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
       </Card>
 
       {/* ================================================================
-          17. FUNÇÃO RENAL
+          16. FUNÇÃO RENAL
       ================================================================ */}
 
       <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -3183,7 +3127,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
       </Card>
 
       {/* ================================================================
-          18. EXAMES DE IMAGEM
+          17. EXAMES DE IMAGEM
       ================================================================ */}
       {modo === "criar" && (
         <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -3364,7 +3308,7 @@ export default function PacienteForm({ inicial, modo }: Props) {
       )}
 
       {/* ================================================================
-          19. FOTOS DA ADMISSÃO
+          18. FOTOS DA ADMISSÃO
       ================================================================ */}
       {modo === "criar" && (
         <div className="space-y-4">

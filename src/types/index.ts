@@ -100,6 +100,7 @@ export interface EvolucaoFormData {
 
     // Alta
     altaPrevista?: boolean
+    altaPrevistaData?: string
     altaHoje?: boolean
     chkReceita?: boolean
     chkRelatorio?: boolean
@@ -117,6 +118,9 @@ export interface EvolucaoFormData {
 
     // Observações
     observacoes?: string
+    dataExame?: string
+    pendenciasSelecionadas?: PendenciaParaGerar[]
+    somenteLaboratorio?: boolean
 }
 
 export interface PendenciaParaGerar {

@@ -98,9 +98,12 @@ export const EXAMES_ALTA_COMPLEXIDADE: string[] = [
 export function formatDate(d?: string | null): string {
     if (!d) return "-";
 
-    // Adiciona T00:00:00 para evitar problemas de fuso horário que mudam o dia
-    const dateString = d.length === 10 ? `${d}T00:00:00` : d;
-    const date = new Date(dateString);
+    // Datas clínicas são dias-calendário. Ao receber ISO em UTC do Prisma,
+    // preservamos a parte YYYY-MM-DD para não deslocar o dia pelo fuso local.
+    const calendarDate = /^\d{4}-\d{2}-\d{2}/.exec(d)?.[0];
+    const date = new Date(`${calendarDate ?? d}T00:00:00`);
+
+    if (Number.isNaN(date.getTime())) return "-";
 
     return date.toLocaleDateString("pt-BR");
 }
